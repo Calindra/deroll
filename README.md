@@ -3,6 +3,20 @@
 Deroll is a TypeScript framework for developing [Cartesi](https://cartesi.io) applications.
 The code below is a minimal application which just loops forever fetching inputs, but with no input handlers. In that case any input is `rejected`.
 
+
+# Requeriments
+- Corepack (with pnpm)
+
+
+# Installation
+```sh
+corepack install
+corepacka pnpm install
+```
+
+
+# Example
+
 ```typescript
 import { createApp } from "@deroll/app";
 
