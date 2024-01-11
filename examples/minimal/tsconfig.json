@@ -1,5 +1,24 @@
 {
-    "extends": "@deroll/tsconfig/base.json",
-    "include": ["."],
-    "exclude": ["dist", "node_modules"]
+  "extends": "@deroll/tsconfig/base.json",
+  "include": [
+    "."
+  ],
+  "exclude": [
+    "dist",
+    "node_modules"
+  ],
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@deroll/app": [
+        "./node_modules/@deroll/app/src"
+      ],
+      "@deroll/router": [
+        "./node_modules/@deroll/router/src"
+      ],
+      "@deroll/wallet": [
+        "./node_modules/@deroll/wallet/src"
+      ],
+    }
+  }
 }
