@@ -11,8 +11,11 @@ The code below is a minimal application which just loops forever fetching inputs
 # Installation
 ```sh
 corepack install
-corepacka pnpm install
+corepack pnpm install
 ```
+
+# Usage
+
 
 
 # Example
