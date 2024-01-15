@@ -1,15 +1,15 @@
 {
-    "name": "eslint-config-deroll",
-    "version": "0.0.0",
-    "main": "index.js",
-    "license": "MIT",
-    "private": true,
-    "dependencies": {
-        "@typescript-eslint/eslint-plugin": "^6",
-        "eslint-config-prettier": "^9",
-        "eslint-config-turbo": "^1"
-    },
-    "publishConfig": {
-        "access": "public"
-    }
+  "name": "eslint-config-deroll",
+  "version": "0.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "@typescript-eslint/eslint-plugin": "^6",
+    "eslint-config-prettier": "^9",
+    "eslint-config-turbo": "^1"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }
