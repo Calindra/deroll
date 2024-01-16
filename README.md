@@ -8,10 +8,14 @@ Input handles are functions that take an input and return a promise of an output
 
 ## Requeriments
 
-- Corepack (with pnpm) or pnpm
+- Corepack (with pnpm) or pnpm v8 (8.7.1 recommended)
 - Node 20 or greater (LTS)
 
 ## Installation
+
+Corepack is a package manager that allows you to install packages from different package managers.
+It is recommended to use it to install deroll because it come with nodejs.
+But you can use pnpm if you want. To install corepack follow the instructions [here](https://pnpm.io/installation).
 
 ```sh
 corepack install
