@@ -7,6 +7,7 @@ In that case any input is `rejected`.
 Input handles are functions that take an input and return a promise of an output.
 
 ## Requirements
+
 - Corepack (with pnpm) or pnpm v8 (8.7.1 recommended)
 - Node 20 or greater (LTS)
 
@@ -24,6 +25,7 @@ corepack pnpm install
 ## Quick Start
 
 ### Prerequisites
+
 Make sure you have Node.js and Yarn installed. You can download them from [nodejs.org](https://nodejs.org/) and [yarnpkg.com](https://yarnpkg.com/).
 
 ### Install sunodo
@@ -33,17 +35,20 @@ npm install -g @sunodo/cli
 ```
 
 ### Create a new project with the TypeScript template
+
 ```shell
 sunodo create hello-world --template typescript
 ```
 
 ### Add deroll to your project
+
 ```shell
 cd hello-world
 yarn add @deroll/app
 ```
 
 ### Write a simple Cartesi application
+
 Open the file `src/index.ts` and copy and paste the following code:
 
 ```ts
@@ -72,14 +77,19 @@ app.start().catch((e) => {
 ```
 
 ### Build and run your dApp
+
 ```shell
 sunodo build
 ```
+
 Run
+
 ```shell
 sunodo run
 ```
+
 Expected output:
+
 ```shell
 prompt-1     | Anvil running at http://localhost:8545
 prompt-1     | GraphQL running at http://localhost:8080/graphql
@@ -91,9 +101,11 @@ prompt-1     | Press Ctrl+C to stop the node
 ### Send a message
 
 Open a new terminal and run:
+
 ```shell
 sunodo send
 ```
+
 Choose `Send generic input to the application.`
 After choose `Foundry`
 Select the defaults:
@@ -103,6 +115,7 @@ Account, DApp address
 Select `Input String encoding` and in the input type `Hello world!` and hit enter.
 
 Expected output:
+
 ```shell
 sunodo send
 ? Select send sub-command Send generic input to the application.
@@ -118,6 +131,7 @@ sunodo send
 ```
 
 Expected output in the `sunodo run` terminal:
+
 ```shell
 prompt-1     | Anvil running at http://localhost:8545
 prompt-1     | GraphQL running at http://localhost:8080/graphql
@@ -132,7 +146,8 @@ validator-1  | Hello world!
 Now you're ready to start building your Cartesi application with sunodo and deroll!
 
 ## How to contribute
-_TODO_
+
+TODO
 
 ## License
 
