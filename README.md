@@ -140,6 +140,7 @@ app.start().catch((e) => process.exit(1));
 
 ```mermaid
 stateDiagram-v2
+    direction TB
     A: app_created
 
     E: added_handler_inspect
@@ -156,50 +157,60 @@ stateDiagram-v2
     ADH: call_advance_handler
     INH: call_inspect_handler
 
-    H: handler_state
+    X: handler_state
+
+    state HANDLE_STATE {
+        [*] --> X
+
+        X --> F: add
+        X --> E: add
+
+        E --> is_added
+        F --> is_added
+
+        is_added --> X: is_success
+        
+        
+        X --> [*]: start
+    }
+
+    state LOOP {
+        [*] --> G
+        G --> C : Call
+        C --> request_type : Status 200
+        C --> G: Status 202
+
+        request_type --> ADH: advance_type
+        request_type --> INH: inspect_type
+        request_type --> G: unknown_type
+
+        INH --> handled_inspect: run
+        ADH --> handled_advance: run
+
+        handled_inspect --> has_handler_inspect : has more?
+        handled_advance --> has_handler_advanced : has more?
+
+        has_handler_inspect --> INH: yes
+        has_handler_inspect --> G: no
+        
+        has_handler_advanced --> ADH: yes
+        has_handler_advanced --> G: no, send last status
+
+        note left of has_handler_advanced
+        If broadcast option is activated
+        break loop and return reject state to rollup
+        Always return last status to rollups
+        end note
+    }
 
     [*] --> A : create_app
-    A --> H
-    
-    H --> F: add
-    H --> E: add
-    
-    E --> is_added
-    F --> is_added
+    A --> HANDLE_STATE
+    HANDLE_STATE --> LOOP
 
-    is_added --> H: is_success
-    is_added --> [*]: Error
-
-    H --> G: start
-
-    G --> C : Call
-    C --> request_type : Status 200
-    C --> G: Status 202
-
-    request_type --> ADH: advance_type
-    request_type --> INH: inspect_type
-    request_type --> G: unknown_type
-
-    INH --> handled_inspect: run
-    ADH --> handled_advance: run
-
-    handled_inspect --> has_handler_inspect : has more?
-    handled_advance --> has_handler_advanced : has more?
-
-    has_handler_inspect --> INH: yes
-    has_handler_inspect --> G: no
-    
-    has_handler_advanced --> ADH: yes
-    has_handler_advanced --> G: no, send last status
-
-    note left of has_handler_advanced
-      If broadcast option is activated
-      break loop and return reject state to rollup
-      Always return last status to rollups
-    end note
 
     A --> [*] : Error
     C --> [*] : Error
+    is_added --> [*]: Error
 ```
 
 ## License
