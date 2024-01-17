@@ -6,22 +6,6 @@ In that case any input is `rejected`.
 
 Input handles are functions that take an input and return a promise of an output.
 
-## Requirements
-
-- Corepack (with pnpm) or pnpm v8 (8.7.1 recommended)
-- Node 20 or greater (LTS)
-
-## Installation
-
-Corepack is a package manager that allows you to install packages from different package managers.
-It is recommended to use it to install deroll because it come with nodejs.
-But you can use pnpm if you want. To install corepack follow the instructions [here](https://pnpm.io/installation).
-
-```sh
-corepack install
-corepack pnpm install
-```
-
 ## Quick Start
 
 ### Prerequisites
@@ -144,6 +128,30 @@ validator-1  | Hello world!
 ```
 
 Now you're ready to start building your Cartesi application with sunodo and deroll!
+
+## Build from source
+
+### Requirements
+
+- Corepack (with pnpm) or pnpm v8 (8.7.1 recommended)
+- Node 20 or greater (LTS)
+
+### Installation
+
+Corepack is a package manager that allows you to install packages from different package managers.
+It is recommended to use it to install deroll because it come with nodejs.
+But you can use pnpm if you want. To install corepack follow the instructions [here](https://pnpm.io/installation).
+
+```sh
+corepack install
+corepack pnpm install
+```
+
+### Build
+
+```sh
+npm run build
+```
 
 ## How to contribute
 
