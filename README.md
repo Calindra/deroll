@@ -206,7 +206,6 @@ stateDiagram-v2
 
     A --> [*] : Error
     C --> [*] : Error
-    is_added --> [*]: Error
 ```
 
 ## License
