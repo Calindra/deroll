@@ -146,7 +146,6 @@ stateDiagram-v2
     E: added_handler_inspect
     F: added_handler_advance
 
-    state is_added <<choice>>
     state request_type <<choice>>
     state has_handler_inspect <<choice>>
     state has_handler_advanced <<choice>>
@@ -165,11 +164,8 @@ stateDiagram-v2
         X --> F: add
         X --> E: add
 
-        E --> is_added
-        F --> is_added
-
-        is_added --> X: is_success
-        
+        E --> X
+        F --> X
         
         X --> [*]: start
     }
