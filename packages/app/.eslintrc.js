@@ -1,4 +1,4 @@
 module.exports = {
-    root: true,
-    extends: ["deroll"],
+  root: true,
+  extends: ["deroll"],
 };

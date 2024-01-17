@@ -1,31 +1,38 @@
 # deroll
 
 Deroll is a TypeScript framework for developing [Cartesi](https://cartesi.io) applications.
-The code below is a minimal application which just loops forever fetching inputs, but with no input handlers. In that case any input is `rejected`.
+The code below is a minimal application which just loops forever fetching inputs, but with no input handlers.
+In that case any input is `rejected`.
 
-# Quick Start
+Input handles are functions that take an input and return a promise of an output.
 
-## Prerequisites
+## Quick Start
+
+### Prerequisites
+
 Make sure you have Node.js and Yarn installed. You can download them from [nodejs.org](https://nodejs.org/) and [yarnpkg.com](https://yarnpkg.com/).
 
-## Install sunodo
+### Install sunodo
 
 ```shell
 npm install -g @sunodo/cli
 ```
 
-## Create a new project with the TypeScript template
+### Create a new project with the TypeScript template
+
 ```shell
 sunodo create hello-world --template typescript
 ```
 
-## Add deroll to your project
+### Add deroll to your project
+
 ```shell
 cd hello-world
 yarn add @deroll/app
 ```
 
-## Write a simple Cartesi application
+### Write a simple Cartesi application
+
 Open the file `src/index.ts` and copy and paste the following code:
 
 ```ts
@@ -53,15 +60,20 @@ app.start().catch((e) => {
 });
 ```
 
-## Build and run your dApp
+### Build and run your dApp
+
 ```shell
 sunodo build
 ```
+
 Run
+
 ```shell
 sunodo run
 ```
+
 Expected output:
+
 ```shell
 prompt-1     | Anvil running at http://localhost:8545
 prompt-1     | GraphQL running at http://localhost:8080/graphql
@@ -70,21 +82,24 @@ prompt-1     | Explorer running at http://localhost:8080/explorer/
 prompt-1     | Press Ctrl+C to stop the node
 ```
 
-## Send a message
+### Send a message
 
 Open a new terminal and run:
+
 ```shell
 sunodo send
 ```
-Choose `Send generic input to the application.`  
-After choose `Foundry`  
-Select the defaults:  
-Select the RPC URL `http://127.0.0.1:8545`  
-Select Mnemonic  
-Account, DApp address  
+
+Choose `Send generic input to the application.`
+After choose `Foundry`
+Select the defaults:
+Select the RPC URL `http://127.0.0.1:8545`
+Select Mnemonic
+Account, DApp address
 Select `Input String encoding` and in the input type `Hello world!` and hit enter.
 
 Expected output:
+
 ```shell
 sunodo send
 ? Select send sub-command Send generic input to the application.
@@ -100,6 +115,7 @@ sunodo send
 ```
 
 Expected output in the `sunodo run` terminal:
+
 ```shell
 prompt-1     | Anvil running at http://localhost:8545
 prompt-1     | GraphQL running at http://localhost:8080/graphql
@@ -113,28 +129,33 @@ validator-1  | Hello world!
 
 Now you're ready to start building your Cartesi application with sunodo and deroll!
 
-# How to contribute
+## Build from source
 
-# Requirements
-- Corepack (with pnpm)
+### Requirements
 
+- Corepack (with pnpm) or pnpm v8 (8.7.1 recommended)
+- Node 20 or greater (LTS)
 
-# Installation
+### Installation
+
+Corepack is a package manager that allows you to install packages from different package managers.
+It is recommended to use it to install deroll because it come with nodejs.
+But you can use pnpm if you want. To install corepack follow the instructions [here](https://pnpm.io/installation).
+
 ```sh
 corepack install
 corepack pnpm install
 ```
 
+### Build
 
-# Example
-
-```typescript
-import { createApp } from "@deroll/app";
-
-const app = createApp({ url: "http://127.0.0.1:5004" });
-// TODO: add input handlers here
-app.start().catch((e) => process.exit(1));
+```sh
+npm run build
 ```
+
+## How to contribute
+
+TODO
 
 ## License
 
