@@ -136,6 +136,41 @@ const app = createApp({ url: "http://127.0.0.1:5004" });
 app.start().catch((e) => process.exit(1));
 ```
 
+## How to work
+
+```mermaid
+stateDiagram-v2
+    A: app_created
+
+    E: handlers_inspect
+    F: handlers_advance
+
+    state is_added <<choice>>
+    
+    G: app_started
+
+    H: handler_state
+
+    [*] --> A : create_app
+    A --> H
+    
+    H --> F: add
+    H --> E: add
+    
+    E --> is_added
+    F --> is_added
+
+    is_added --> H: is_sucess
+    is_added --> [*]: Error
+
+    H --> G: start
+
+    G --> G
+
+    A --> [*] : Error
+    G --> [*] : Error
+```
+
 ## License
 
 This code is licensed under the [MIT License](./LICENSE).
