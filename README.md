@@ -165,9 +165,11 @@ npm run build
 - In cases where advance is  `reject`, always return at least one is accept, otherwise return `reject` to rollup. 
 
 ### Another methods in handler state
-- Some options are available in handler state, see below:
 
-- createVoucher
+Some options are available in handler state, see below:
+
+#### createVoucher
+
 Vouchers are a way to send information carried out on L1.
 See more about [here](https://docs.cartesi.io/cartesi-rollups/main-concepts#vouchers)
 
@@ -177,7 +179,8 @@ Example:
 // code here
 ```
 
-- createNotice
+#### createNotice
+
 Notices are information statements.
 See more about [here](https://docs.cartesi.io/cartesi-rollups/main-concepts#notices)
 
@@ -187,7 +190,8 @@ Example:
 // code here
 ```
 
-- createReport
+#### createReport
+
 Reports are application logs and diagnostic information, like error or warning.
 See more about [here](https://docs.cartesi.io/cartesi-rollups/main-concepts#reports)
 
