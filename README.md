@@ -1,22 +1,12 @@
 # deroll
 
-Deroll is a TypeScript framework for developing [Cartesi](https://cartesi.io) applications.
-The code below is a minimal application which just loops forever fetching inputs, but with no input handlers.
-In that case any input is `rejected`.
-
-Input handles are functions that take an input and return a promise of an output.
+Deroll, a TypeScript framework, facilitates the development of decentralized applications (dApps) on the  [Cartesi](https://cartesi.io) blockchain technology. With a focus on simplicity, Deroll offers a toolkit and conventions to streamline your development workflow. Easily onboard using Node.js, Sunodo, and Deroll to start building your Cartesi application with ease.
 
 ## Quick Start
 
 ### Prerequisites
 
-Make sure you have Node.js and Yarn installed. You can download them from [nodejs.org](https://nodejs.org/) and [yarnpkg.com](https://yarnpkg.com/).
-
-### Install sunodo
-
-```shell
-npm install -g @sunodo/cli
-```
+Ensure you have Node.js and Yarn installed; you can download them from [nodejs.org](https://nodejs.org/) and [yarnpkg.com](https://yarnpkg.com/). Additionally, it's necessary to install [sunodo](https://docs.sunodo.io/guide/introduction/installing) as it is an essential component for running the dApp.
 
 ### Create a new project with the TypeScript template
 
@@ -64,11 +54,6 @@ app.start().catch((e) => {
 
 ```shell
 sunodo build
-```
-
-Run
-
-```shell
 sunodo run
 ```
 
