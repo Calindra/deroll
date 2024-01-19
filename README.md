@@ -155,6 +155,50 @@ npm run build
 
 ## How to work
 
+ There are three main parts:
+
+1. Creation of the application using endpoint to Rollup, where the program will make the calls later.
+1. The addition of the handlers that will be executed when the program receives the inputs, whether inspect or advance. Some another options are available. See more about later.
+1. Start the application, where the program in a loop will receive the inputs, execute the handlers.
+
+- If input are from type  `inspect` the program will not return anything, but if the input are from type `advance` the program will return `accept` or `reject`.
+- In cases where advance is  `reject`, always return at least one is accept, otherwise return `reject` to rollup. 
+
+### Another methods in handler state
+- Some options are available in handler state, see below:
+
+- createVoucher
+Vouchers are a way to send information carried out on L1.
+See more about [here](https://docs.cartesi.io/cartesi-rollups/main-concepts#vouchers)
+
+Example:
+
+```ts
+// code here
+```
+
+- createNotice
+Notices are information statements.
+See more about [here](https://docs.cartesi.io/cartesi-rollups/main-concepts#notices)
+
+Example:
+
+```ts
+// code here
+```
+
+- createReport
+Reports are application logs and diagnostic information, like error or warning.
+See more about [here](https://docs.cartesi.io/cartesi-rollups/main-concepts#reports)
+
+Example:
+
+```ts
+// code here
+```
+
+## Overview about deroll
+
 ```mermaid
 stateDiagram-v2
     direction TB
