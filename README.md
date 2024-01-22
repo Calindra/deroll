@@ -140,18 +140,23 @@ npm run build
 
 ## How to work
 
- There are three main parts:
+This application has 3 packages:
+1. App: responsible for creating the link with application and adding handlers.
+1. Wallet: responsible for handle transactions in `advance` state with transactions and contracts from ETH.
+1. Router: responsible for handle transactions in `inspect` state and create report if necessary.
 
-1. Creation of the application using endpoint to Rollup, where the program will make the calls later.
-1. The addition of the handlers that will be executed when the program receives the inputs, whether inspect or advance. Some another options are available. See more about later.
-1. Start the application, where the program in a loop will receive the inputs, execute the handlers.
+In app package, there are three main parts:
 
-- If input are from type  `inspect` the program will not return anything, but if the input are from type `advance` the program will return `accept` or `reject`.
+1. **Creation** of the application using endpoint to Rollup, where the program will make the calls later.
+1. The **addition of the handlers** that will be executed when the program receives the inputs, whether inspect or advance. Some another options are available. See more about later.
+1. **Start the application**, where the program in a loop will receive the inputs, execute the handlers.
+
+- If input are from type  `inspect` the handler will not return anything, but if the input are from type `advance` the program will return `accept` or `reject`.
 - In cases where advance is  `reject`, always return at least one is accept, otherwise return `reject` to rollup. 
 
-### Another methods in handler state
+### Another methods
 
-Some options are available in handler state, see below:
+In app packages have some options are available, see below:
 
 #### createVoucher
 
