@@ -118,8 +118,8 @@ Now you're ready to start building your Cartesi application with sunodo and dero
 
 ### Requirements
 
-- Corepack (with pnpm) or pnpm v8 (8.7.1 recommended)
-- Node 20 or greater (LTS)
+-   Corepack (with pnpm) or pnpm v8 (8.7.1 recommended)
+-   Node 20 or greater (LTS)
 
 ### Installation
 
@@ -136,6 +136,148 @@ corepack pnpm install
 
 ```sh
 npm run build
+```
+
+## How to work
+
+This application has 3 packages:
+
+1. App: responsible for creating the link with application and adding handlers.
+1. Wallet: responsible for handle transactions in `advance` state with transactions and contracts from ETH.
+1. Router: responsible for handle transactions in `inspect` state and create report if necessary.
+
+In app package, there are three main parts:
+
+1. **Creation** of the application using endpoint to Rollup, where the program will make the calls later.
+1. The **addition of the handlers** that will be executed when the program receives the inputs, whether inspect or advance. Some another options are available. See more about later.
+1. **Start the application**, where the program in a loop will receive the inputs, execute the handlers.
+
+-   If input are from type  `inspect` the handler will not return anything, but if the input are from type `advance` the program will return `accept` or `reject`.
+-   In cases where advance is  `reject`, always return at least one is accept, otherwise return `reject` to rollup.
+
+### Another methods
+
+In app packages have some options are available, see below:
+
+#### createVoucher
+
+Vouchers are a way to send information carried out on L1.
+See more about [here](https://docs.cartesi.io/cartesi-rollups/main-concepts#vouchers)
+
+Example:
+
+```ts
+const voucher: Voucher = {
+  destination: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  payload: "0xcdcd77c000000000000000000000000000000000000000000000000000000000000000450000000000000000000000000000000000000000000000000000000000000001"
+}
+ 
+  app.createVoucher(voucher).then((id) => console.log("Voucher", id)).catch(console.error);
+}
+```
+
+#### createNotice
+
+Notices are information statements.
+See more about [here](https://docs.cartesi.io/cartesi-rollups/main-concepts#notices)
+
+Example:
+
+```ts
+const notice: Notice = { payload: "0x0000000" }
+
+const notice: Notice = {
+    payload: "0xdeadbeef",
+}
+
+app.createNotice(notice).then((id) => console.log("Notice", id)).catch(console.error);
+```
+
+#### createReport
+
+Reports are application logs and diagnostic information, like error or warning.
+See more about [here](https://docs.cartesi.io/cartesi-rollups/main-concepts#reports)
+
+Example:
+
+```ts
+const report: Report = {
+    payload: "0xdeadbeef",
+} 
+
+app.createReport(report).catch(console.error);
+```
+
+## Overview about deroll
+
+```mermaid
+stateDiagram-v2
+    direction TB
+    A: app_created
+
+    E: added_handler_inspect
+    F: added_handler_advance
+
+    state request_type <<choice>>
+    state has_handler_inspect <<choice>>
+    state has_handler_advanced <<choice>>
+
+    G: app_started
+    C: app_called_rollup
+
+    ADH: call_advance_handler
+    INH: call_inspect_handler
+
+    X: handler_state
+
+    state HANDLE_STATE {
+        [*] --> X
+
+        X --> F: add
+        X --> E: add
+
+        E --> X
+        F --> X
+
+        X --> [*]: start
+    }
+
+    state LOOP {
+        [*] --> G
+        G --> C : Call
+        C --> request_type : Status 200
+        C --> G: Status 202
+
+        request_type --> ADH: advance_type
+        request_type --> INH: inspect_type
+        request_type --> G: unknown_type
+
+        INH --> handled_inspect: run
+        ADH --> handled_advance: run
+
+        handled_inspect --> has_handler_inspect : has more?
+        handled_advance --> has_handler_advanced : has more?
+
+        has_handler_inspect --> INH: yes
+        has_handler_inspect --> G: no
+
+        has_handler_advanced --> ADH: yes
+        has_handler_advanced --> G: no, send last status
+
+        note left of has_handler_advanced
+        If broadcast option is activated
+        break loop and return reject state to rollup
+        Always return last status to rollups
+        end note
+    }
+
+    [*] --> A : create_app
+    A --> HANDLE_STATE
+    HANDLE_STATE --> LOOP
+
+
+    A --> [*] : Error
+    C --> [*] : Error
 ```
 
 ## How to contribute
