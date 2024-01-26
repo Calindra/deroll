@@ -118,8 +118,8 @@ Now you're ready to start building your Cartesi application with sunodo and dero
 
 ### Requirements
 
-- Corepack (with pnpm) or pnpm v8 (8.7.1 recommended)
-- Node 20 or greater (LTS)
+-   Corepack (with pnpm) or pnpm v8 (8.7.1 recommended)
+-   Node 20 or greater (LTS)
 
 ### Installation
 
@@ -141,6 +141,7 @@ npm run build
 ## How to work
 
 This application has 3 packages:
+
 1. App: responsible for creating the link with application and adding handlers.
 1. Wallet: responsible for handle transactions in `advance` state with transactions and contracts from ETH.
 1. Router: responsible for handle transactions in `inspect` state and create report if necessary.
@@ -151,8 +152,8 @@ In app package, there are three main parts:
 1. The **addition of the handlers** that will be executed when the program receives the inputs, whether inspect or advance. Some another options are available. See more about later.
 1. **Start the application**, where the program in a loop will receive the inputs, execute the handlers.
 
-- If input are from type  `inspect` the handler will not return anything, but if the input are from type `advance` the program will return `accept` or `reject`.
-- In cases where advance is  `reject`, always return at least one is accept, otherwise return `reject` to rollup. 
+-   If input are from type  `inspect` the handler will not return anything, but if the input are from type `advance` the program will return `accept` or `reject`.
+-   In cases where advance is  `reject`, always return at least one is accept, otherwise return `reject` to rollup.
 
 ### Another methods
 
