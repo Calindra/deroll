@@ -167,7 +167,13 @@ See more about [here](https://docs.cartesi.io/cartesi-rollups/main-concepts#vouc
 Example:
 
 ```ts
-// code here
+const voucher: Voucher = {
+  destination: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  payload: "0xcdcd77c000000000000000000000000000000000000000000000000000000000000000450000000000000000000000000000000000000000000000000000000000000001"
+}
+ 
+  app.createVoucher(voucher).then((id) => console.log("Voucher", id)).catch(console.error);
+}
 ```
 
 #### createNotice
@@ -178,7 +184,13 @@ See more about [here](https://docs.cartesi.io/cartesi-rollups/main-concepts#noti
 Example:
 
 ```ts
-// code here
+const notice: Notice = { payload: "0x0000000" }
+
+const notice: Notice = {
+    payload: "0xdeadbeef",
+}
+
+app.createNotice(notice).then((id) => console.log("Notice", id)).catch(console.error);
 ```
 
 #### createReport
@@ -189,7 +201,11 @@ See more about [here](https://docs.cartesi.io/cartesi-rollups/main-concepts#repo
 Example:
 
 ```ts
-// code here
+const report: Report = {
+    payload: "0xdeadbeef",
+} 
+
+app.createReport(report).catch(console.error);
 ```
 
 ## Overview about deroll
