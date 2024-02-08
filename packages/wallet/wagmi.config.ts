@@ -14,7 +14,7 @@ export default defineConfig({
         },
     ],
     plugins: [
-        erc({ 721: false, 4626: false }),
+        erc({ 721: true, 4626: false }),
         hardhatDeploy({
             directory: "node_modules/@cartesi/rollups/export/abi",
             includes: [
