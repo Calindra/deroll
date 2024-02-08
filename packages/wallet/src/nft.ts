@@ -1,6 +1,6 @@
-import { Hex } from "viem";
+import { Hex, getAddress } from "viem";
 import { AdvanceRequestData, Payload } from "@deroll/app";
-import { erc721ABI, erc1155SinglePortalABI, erc721PortalABI } from "./rollups";
+import { erc721PortalAddress, erc1155SinglePortalAddress } from "./rollups";
 
 type Address = Hex;
 
@@ -40,6 +40,12 @@ interface Account {
     address: Address;
     balance: bigint;
 }
+
+const isERC721Deposit = (data: AdvanceRequestData): boolean =>
+    getAddress(data.metadata.msg_sender) === erc721PortalAddress;
+
+const isERC1155Deposit = (data: AdvanceRequestData): boolean =>
+    getAddress(data.metadata.msg_sender) === erc1155SinglePortalAddress;
 
 export class Deposit {
     constructor(private accounts: Map<string, Account>) {}
