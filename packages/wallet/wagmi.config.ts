@@ -21,6 +21,8 @@ export default defineConfig({
                 /CartesiDApp/,
                 /DAppAddressRelay/,
                 /ERC20Portal/,
+                /ERC721Portal/,
+                /ERC1155SinglePortal/,
                 /EtherPortal/,
             ],
         }),

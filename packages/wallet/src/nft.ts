@@ -1,5 +1,6 @@
 import { Hex } from "viem";
-import { erc721ABI } from "./rollups";
+import { AdvanceRequestData, Payload } from "@deroll/app";
+import { erc721ABI, erc1155SinglePortalABI, erc721PortalABI } from "./rollups";
 
 type Address = Hex;
 
@@ -13,8 +14,6 @@ export interface ERC721 {
     getApproved(tokenId: bigint): string;
     isApprovedForAll(owner: string, operator: string): boolean;
 }
-
-export type Payload = Record<string, unknown>;
 
 export interface ERC1155 {
     balanceOf(address: Address, tokenId: bigint): bigint;
@@ -94,4 +93,3 @@ export class InternalTransfer {
 //         throw new Error("Method not implemented.");
 //     }
 // }
-
