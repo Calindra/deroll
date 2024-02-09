@@ -1,33 +1,28 @@
 import { Address } from "viem";
 import { AdvanceRequestData, Payload } from "@deroll/app";
 
-interface Account {
+// TODO: Temporary type
+export interface Account {
     address: Address;
     balance: bigint;
 }
 
-export class Deposit {
-    constructor(private accounts: Map<string, Account>) {}
-    detectPrefix(payload: AdvanceRequestData) {}
-    decodeParameters(payload: Payload) {}
-    writeAccount(address: Address) {
-        if (!this.accounts.has(address)) {
-            this.accounts.set(address, { address, balance: 0n });
-        }
-        throw new Error("Write method not implemented.");
-    }
-}
+type Deposit = {
+    detectPrefix(payload: AdvanceRequestData): void;
+    decodeParameters(payload: Payload): void;
+    writeAccount(address: Address): void;
+};
 
-export class Withdraw {
-    withDrawAdvanceRequestData(payload: Payload) {
-        throw new Error("Method not implemented.");
-    }
-    checkBalance(address: Address) {}
-    emitVoucherAndSubtractBalance(address: string, amount: bigint) {}
-}
+type Withdraw = {
+    withDrawAdvanceRequestData(payload: Payload): void;
+    checkBalance(address: Address): void;
+    emitVoucherAndSubtractBalance(address: Address, amount: bigint): void;
+};
 
-export class InternalTransfer {
-    defineInteralTransferAdvanceRequestData(payload: Payload) {}
-    checkFromBalance(address: Address) {}
-    doTransfer(from: string, to: string, amount: bigint) {}
-}
+type InternalTransfer = {
+    defineInteralTransferAdvanceRequestData(payload: Payload): void;
+    checkFromBalance(address: Address): void;
+    doTransfer(from: Address, to: Address, amount: bigint): void;
+};
+
+export type TransferBehavior = Deposit & Withdraw & InternalTransfer;
