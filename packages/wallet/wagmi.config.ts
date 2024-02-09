@@ -23,6 +23,7 @@ export default defineConfig({
                 /ERC20Portal/,
                 /ERC721Portal/,
                 /ERC1155SinglePortal/,
+                /ERC1155BatchPortal/,
                 /EtherPortal/,
             ],
         }),
