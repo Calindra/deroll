@@ -14,7 +14,7 @@ import {
 export type Wallet = {
     ether: bigint;
     erc20: Map<Address, bigint>;
-    erc721: Map<Address, Set<number>>;
+    erc721: Map<Address, Set<bigint>>;
     erc1155: Map<Address, Map<number, bigint>>;
 };
 
@@ -114,14 +114,17 @@ export class WalletAppImpl implements WalletApp {
 
         // ERC721 Deposit
         if (isERC721Deposit(data)) {
-            const {
-                token,
-                data: _dataBytes,
-                sender,
-                tokenId,
-            } = parseERC721Deposit(data.payload);
+            const { token, sender, tokenId } = parseERC721Deposit(data.payload);
 
-            const wallet = this.wallets[sender]?.erc721.get(token);
+            const wallet = this.getWalletOrNew(sender);
+
+            const collection = wallet.erc721.get(token);
+            if (collection) {
+                collection.add(tokenId);
+            } else {
+                const collection = new Set([tokenId]);
+                wallet.erc721.set(token, collection);
+            }
 
             return "accept";
         }
