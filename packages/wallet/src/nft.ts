@@ -1,12 +1,6 @@
 import { Address } from "viem";
 import { AdvanceRequestData, Payload } from "@deroll/app";
 
-// TODO: Temporary type
-export interface Account {
-    address: Address;
-    balance: bigint;
-}
-
 type Deposit = {
     detectPrefix(payload: AdvanceRequestData): void;
     decodeParameters(payload: Payload): void;

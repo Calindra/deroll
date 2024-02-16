@@ -11,7 +11,9 @@ import {
 
 export type Wallet = {
     ether: bigint;
-    erc20: Record<Address, bigint>;
+    erc20: Map<Address, bigint>;
+    erc721: Map<Address, Set<number>>;
+    erc1155: Map<Address, Map<number, bigint>>;
 };
 
 export interface WalletApp {
@@ -41,7 +43,7 @@ export class WalletAppImpl implements WalletApp {
         tokenOrAddress: string | Address,
         address?: string,
     ): bigint {
-        if (address) {
+        if (address && isAddress(address)) {
             // if is address, normalize it
             if (isAddress(address)) {
                 address = getAddress(address);
@@ -49,7 +51,7 @@ export class WalletAppImpl implements WalletApp {
 
             // erc-20 balance
             const wallet = this.wallets[address] ?? { ether: 0n, erc20: {} };
-            return wallet.erc20[tokenOrAddress as Address] ?? 0n;
+            return wallet.erc20.get(tokenOrAddress as Address) ?? 0n;
         } else {
             // if is address, normalize it
             if (isAddress(tokenOrAddress)) {
@@ -75,9 +77,15 @@ export class WalletAppImpl implements WalletApp {
 
             if (success) {
                 const wallet = this.wallets[sender] ?? { ether: 0n, erc20: {} };
-                wallet.erc20[token] = wallet.erc20[token]
-                    ? wallet.erc20[token] + amount
-                    : amount;
+
+                const balance = wallet.erc20.get(token);
+
+                if (balance) {
+                    wallet.erc20.set(token, balance + amount);
+                } else {
+                    wallet.erc20.set(token, amount);
+                }
+
                 this.wallets[sender] = wallet;
             }
             return "accept";
@@ -129,16 +137,25 @@ export class WalletAppImpl implements WalletApp {
         const walletFrom = this.wallets[from] ?? { ether: 0n, erc20: {} };
         const walletTo = this.wallets[to] ?? { ether: 0n, erc20: {} };
 
-        if (!walletFrom.erc20[token] || walletFrom.erc20[token] < amount) {
+        const balance = walletFrom.erc20.get(token);
+
+        if (!balance || balance < amount) {
             throw new Error(
                 `insufficient balance of user ${from} of token ${token}`,
             );
         }
 
-        walletFrom.erc20[token] = walletFrom.erc20[token] - amount;
-        walletTo.erc20[token] = walletTo.erc20[token]
-            ? walletTo.erc20[token] + amount
-            : amount;
+        const balanceFrom = balance - amount;
+        walletFrom.erc20.set(token, balanceFrom);
+
+        const balanceTo = walletTo.erc20.get(token);
+
+        if (balanceTo) {
+            walletTo.erc20.set(token, balanceTo + amount);
+        } else {
+            walletTo.erc20.set(token, amount);
+        }
+
         this.wallets[from] = walletFrom;
         this.wallets[to] = walletTo;
     }
@@ -182,18 +199,19 @@ export class WalletAppImpl implements WalletApp {
         address = getAddress(address);
 
         const wallet = this.wallets[address];
+        const balance = wallet?.erc20.get(token);
 
         // check balance
-        if (!wallet || !wallet.erc20[token] || wallet.erc20[token] < amount) {
+        if (!balance || balance < amount) {
             throw new Error(
                 `insufficient balance of user ${address} of token ${token}: ${amount.toString()} > ${
-                    wallet.erc20[token]?.toString() ?? "0"
+                    balance?.toString() ?? "0"
                 }`,
             );
         }
 
         // reduce balance right away
-        wallet.erc20[token] -= amount;
+        wallet.erc20.set(token, balance - amount);
 
         const call = encodeFunctionData({
             abi: erc20ABI,
