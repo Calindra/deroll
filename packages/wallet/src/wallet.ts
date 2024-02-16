@@ -5,8 +5,10 @@ import { cartesiDAppABI, dAppAddressRelayAddress, erc20ABI } from "./rollups";
 import {
     isERC20Deposit,
     isEtherDeposit,
+    isERC721Deposit,
     parseERC20Deposit,
     parseEtherDeposit,
+    parseERC721Deposit,
 } from ".";
 
 export type Wallet = {
@@ -29,14 +31,29 @@ export interface WalletApp {
     ): void;
     withdrawEther(address: Address, amount: bigint): Voucher;
     withdrawERC20(token: Address, address: Address, amount: bigint): Voucher;
+    createDefaultWallet(): Wallet;
+    getWalletOrNew(address: string): Wallet;
 }
 
 export class WalletAppImpl implements WalletApp {
-    private dapp: Address | undefined;
+    private dapp?: Address;
     private wallets: Record<string, Wallet> = {};
 
     constructor() {
         this.handler = this.handler.bind(this);
+    }
+
+    getWalletOrNew(address: string): Wallet {
+        return this.wallets[address] ?? this.createDefaultWallet();
+    }
+
+    createDefaultWallet(): Wallet {
+        return {
+            ether: 0n,
+            erc20: new Map(),
+            erc721: new Map(),
+            erc1155: new Map(),
+        };
     }
 
     public balanceOf(
@@ -50,7 +67,7 @@ export class WalletAppImpl implements WalletApp {
             }
 
             // erc-20 balance
-            const wallet = this.wallets[address] ?? { ether: 0n, erc20: {} };
+            const wallet = this.getWalletOrNew(address);
             return wallet.erc20.get(tokenOrAddress as Address) ?? 0n;
         } else {
             // if is address, normalize it
@@ -64,19 +81,23 @@ export class WalletAppImpl implements WalletApp {
     }
 
     public handler: AdvanceRequestHandler = async (data) => {
+        // Ether Deposit
         if (isEtherDeposit(data)) {
-            let { sender, value } = parseEtherDeposit(data.payload);
-            const wallet = this.wallets[sender] ?? { ether: 0n, erc20: {} };
+            const { sender, value } = parseEtherDeposit(data.payload);
+            const wallet = this.getWalletOrNew(sender);
             wallet.ether += value;
             this.wallets[sender] = wallet;
             return "accept";
-        } else if (isERC20Deposit(data)) {
-            let { success, token, sender, amount } = parseERC20Deposit(
+        }
+
+        // ERC20 Deposit
+        if (isERC20Deposit(data)) {
+            const { success, token, sender, amount } = parseERC20Deposit(
                 data.payload,
             );
 
             if (success) {
-                const wallet = this.wallets[sender] ?? { ether: 0n, erc20: {} };
+                const wallet = this.getWalletOrNew(sender);
 
                 const balance = wallet.erc20.get(token);
 
@@ -89,12 +110,29 @@ export class WalletAppImpl implements WalletApp {
                 this.wallets[sender] = wallet;
             }
             return "accept";
-        } else if (
-            getAddress(data.metadata.msg_sender) === dAppAddressRelayAddress
-        ) {
+        }
+
+        // ERC721 Deposit
+        if (isERC721Deposit(data)) {
+            const {
+                token,
+                data: _dataBytes,
+                sender,
+                tokenId,
+            } = parseERC721Deposit(data.payload);
+
+            const wallet = this.wallets[sender]?.erc721.get(token);
+
+            return "accept";
+        }
+
+        // Relay Address
+        if (getAddress(data.metadata.msg_sender) === dAppAddressRelayAddress) {
             this.dapp = getAddress(data.payload);
             return "accept";
         }
+
+        // Otherwise, reject
         return "reject";
     };
 
@@ -107,8 +145,8 @@ export class WalletAppImpl implements WalletApp {
             to = getAddress(to);
         }
 
-        const walletFrom = this.wallets[from] ?? { ether: 0n, erc20: {} };
-        const walletTo = this.wallets[to] ?? { ether: 0n, erc20: {} };
+        const walletFrom = this.getWalletOrNew(from);
+        const walletTo = this.getWalletOrNew(to);
 
         if (walletFrom.ether < amount) {
             throw new Error(`insufficient balance of user ${from}`);
@@ -134,8 +172,8 @@ export class WalletAppImpl implements WalletApp {
             to = getAddress(to);
         }
 
-        const walletFrom = this.wallets[from] ?? { ether: 0n, erc20: {} };
-        const walletTo = this.wallets[to] ?? { ether: 0n, erc20: {} };
+        const walletFrom = this.getWalletOrNew(from);
+        const walletTo = this.getWalletOrNew(to);
 
         const balance = walletFrom.erc20.get(token);
 
