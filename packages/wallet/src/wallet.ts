@@ -6,9 +6,13 @@ import {
     isERC20Deposit,
     isEtherDeposit,
     isERC721Deposit,
+    isERC1155SingleDeposit,
+    isERC1155BatchDeposit,
     parseERC20Deposit,
     parseEtherDeposit,
     parseERC721Deposit,
+    parseERC1155SingleDeposit,
+    parseERC1155BatchDeposit,
 } from ".";
 
 export type Wallet = {
@@ -127,6 +131,13 @@ export class WalletAppImpl implements WalletApp {
             }
 
             return "accept";
+        }
+
+        // ERC1155 Single Deposit
+        if (isERC1155SingleDeposit(data)) {
+            const { tokenId, sender, token } = parseERC1155SingleDeposit(
+                data.payload,
+            );
         }
 
         // Relay Address
