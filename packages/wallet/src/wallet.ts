@@ -14,6 +14,7 @@ import {
     parseERC1155SingleDeposit,
     parseERC1155BatchDeposit,
 } from ".";
+import { inspect } from "node:util"
 
 export type Wallet = {
     ether: bigint;
@@ -25,6 +26,7 @@ export type Wallet = {
 export interface WalletApp {
     balanceOf(address: string): bigint;
     balanceOf(token: Address, address: string): bigint;
+    balanceOfERC721(token: Address, owner: string): bigint;
     handler: AdvanceRequestHandler;
     transferEther(from: string, to: string, amount: bigint): void;
     transferERC20(
@@ -71,8 +73,9 @@ export class WalletAppImpl implements WalletApp {
             }
 
             // erc-20 balance
+            const erc20address = getAddress(tokenOrAddress)
             const wallet = this.getWalletOrNew(address);
-            return wallet.erc20.get(tokenOrAddress as Address) ?? 0n;
+            return wallet.erc20.get(erc20address) ?? 0n;
         } else {
             // if is address, normalize it
             if (isAddress(tokenOrAddress)) {
@@ -84,6 +87,14 @@ export class WalletAppImpl implements WalletApp {
         }
     }
 
+    public balanceOfERC721(nftCollectionContractAddress: string | Address, owner: string | Address): bigint {
+        const ownerAddress = getAddress(owner);
+        const wallet = this.getWalletOrNew(ownerAddress);
+        const address = getAddress(nftCollectionContractAddress);
+        const collection = wallet.erc721.get(address) ?? new Set();
+        return BigInt(collection.size)
+    }
+
     public handler: AdvanceRequestHandler = async (data) => {
         // Ether Deposit
         if (isEtherDeposit(data)) {
@@ -93,13 +104,14 @@ export class WalletAppImpl implements WalletApp {
             this.wallets[sender] = wallet;
             return "accept";
         }
+        console.log('Wallet handler...', JSON.stringify(data, null, 4))
 
         // ERC20 Deposit
         if (isERC20Deposit(data)) {
             const { success, token, sender, amount } = parseERC20Deposit(
                 data.payload,
             );
-
+            console.log('ERC-20 data', { success, token, sender, amount })
             if (success) {
                 const wallet = this.getWalletOrNew(sender);
 
@@ -118,6 +130,7 @@ export class WalletAppImpl implements WalletApp {
 
         // ERC721 Deposit
         if (isERC721Deposit(data)) {
+            console.log('ERC-721 data')
             const { token, sender, tokenId } = parseERC721Deposit(data.payload);
 
             const wallet = this.getWalletOrNew(sender);
@@ -129,12 +142,14 @@ export class WalletAppImpl implements WalletApp {
                 const collection = new Set([tokenId]);
                 wallet.erc721.set(token, collection);
             }
-
+            console.log(inspect(this.wallets, { depth: null }))
+            this.wallets[sender] = wallet;
             return "accept";
         }
 
         // ERC1155 Single Deposit
         if (isERC1155SingleDeposit(data)) {
+            console.log('ERC-1155 single')
             const { tokenId, sender, token } = parseERC1155SingleDeposit(
                 data.payload,
             );
@@ -144,15 +159,17 @@ export class WalletAppImpl implements WalletApp {
         }
 
         if (isERC1155BatchDeposit(data)) {
+            console.log('ERC-1155 batch')
             const { token, sender } = parseERC1155BatchDeposit(data.payload);
         }
 
         // Relay Address
         if (getAddress(data.metadata.msg_sender) === dAppAddressRelayAddress) {
+            console.log('dAppAddressRelayAddress')
             this.dapp = getAddress(data.payload);
             return "accept";
         }
-
+        console.log('Wallet handler reject')
         // Otherwise, reject
         return "reject";
     };
@@ -263,8 +280,7 @@ export class WalletAppImpl implements WalletApp {
         // check balance
         if (!balance || balance < amount) {
             throw new Error(
-                `insufficient balance of user ${address} of token ${token}: ${amount.toString()} > ${
-                    balance?.toString() ?? "0"
+                `insufficient balance of user ${address} of token ${token}: ${amount.toString()} > ${balance?.toString() ?? "0"
                 }`,
             );
         }
