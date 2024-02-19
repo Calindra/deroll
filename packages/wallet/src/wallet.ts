@@ -138,6 +138,13 @@ export class WalletAppImpl implements WalletApp {
             const { tokenId, sender, token } = parseERC1155SingleDeposit(
                 data.payload,
             );
+
+            const wallet = this.getWalletOrNew(sender);
+            const collection = wallet.erc1155.get(token);
+        }
+
+        if (isERC1155BatchDeposit(data)) {
+            const { token, sender } = parseERC1155BatchDeposit(data.payload);
         }
 
         // Relay Address

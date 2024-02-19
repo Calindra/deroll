@@ -7,8 +7,12 @@ module.exports = {
             presets: [],
         },
     },
+    env: {
+        node: true,
+    },
     rules: {
         "prefer-const": "error",
         "no-unused-vars": "off",
+        "no-constant-condition": "off",
     },
 };
