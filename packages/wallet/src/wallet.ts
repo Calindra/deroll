@@ -20,7 +20,7 @@ export type Wallet = {
     ether: bigint;
     erc20: Map<Address, bigint>;
     erc721: Map<Address, Set<bigint>>;
-    erc1155: Map<Address, Map<number, bigint>>;
+    erc1155: Map<Address, Map<bigint, bigint>>;
 };
 
 export interface WalletApp {
@@ -168,12 +168,19 @@ export class WalletAppImpl implements WalletApp {
         // ERC1155 Single Deposit
         if (isERC1155SingleDeposit(data)) {
             console.log("ERC-1155 single");
-            const { tokenId, sender, token } = parseERC1155SingleDeposit(
+            const { tokenId, sender, token, value } = parseERC1155SingleDeposit(
                 data.payload,
             );
 
             const wallet = this.getWalletOrNew(sender);
-            const collection = wallet.erc1155.get(token);
+            let collection = wallet.erc1155.get(token);
+            if (!collection) {
+                collection = new Map()
+                wallet.erc1155.set(token, collection)
+            }
+            let tokenBalance = collection.get(tokenId) ?? 0n
+            collection.set(tokenId, tokenBalance + value)
+            console.log(inspect(wallet))
         }
 
         if (isERC1155BatchDeposit(data)) {
