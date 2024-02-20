@@ -7,6 +7,9 @@ import {
     hexToBytes,
     parseAbi,
     slice,
+    decodeAbiParameters,
+    parseAbiParameters,
+    Hex,
 } from "viem";
 
 import { WalletApp, WalletAppImpl } from "./wallet";
@@ -60,7 +63,10 @@ export type ERC1155SingleDeposit = {
 export type ERC1155BatchDeposit = {
     token: Address;
     sender: Address;
-    data: Uint8Array;
+    tokenIds: readonly bigint[];
+    values: readonly bigint[];
+    baseLayerData: Hex;
+    execLayerData: Hex;
 };
 
 /**
@@ -126,10 +132,15 @@ export const parseERC1155SingleDeposit = (
 export const parseERC1155BatchDeposit = (
     payload: Payload,
 ): ERC1155BatchDeposit => {
-    const token = getAddress(slice(payload, 0, 20)); // 20 bytes for address
-    const sender = getAddress(slice(payload, 20, 40)); // 20 bytes for address
-    const data = hexToBytes(slice(payload, 40)); // remaining bytes
-    return { token, sender, data };
+    const [token, sender, tokenIds, values, baseLayerData, execLayerData] =
+        decodeAbiParameters(
+            parseAbiParameters(
+                "address token, address sender, uint256[] tokenIds, uint256[] values, bytes baseLayerData, bytes execLayerData",
+            ),
+            payload,
+        );
+
+    return { token, sender, tokenIds, values, baseLayerData, execLayerData };
 };
 
 export const isEtherDeposit = (data: AdvanceRequestData): boolean =>

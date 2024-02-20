@@ -175,12 +175,12 @@ export class WalletAppImpl implements WalletApp {
             const wallet = this.getWalletOrNew(sender);
             let collection = wallet.erc1155.get(token);
             if (!collection) {
-                collection = new Map()
-                wallet.erc1155.set(token, collection)
+                collection = new Map();
+                wallet.erc1155.set(token, collection);
             }
-            let tokenBalance = collection.get(tokenId) ?? 0n
-            collection.set(tokenId, tokenBalance + value)
-            console.log(inspect(wallet))
+            const tokenBalance = collection.get(tokenId) ?? 0n;
+            collection.set(tokenId, tokenBalance + value);
+            console.log(inspect(wallet));
         }
 
         if (isERC1155BatchDeposit(data)) {
