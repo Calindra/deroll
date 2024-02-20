@@ -14,7 +14,7 @@ import {
     parseERC1155SingleDeposit,
     parseERC1155BatchDeposit,
 } from ".";
-import { inspect } from "node:util"
+import { inspect } from "node:util";
 
 export type Wallet = {
     ether: bigint;
@@ -73,7 +73,7 @@ export class WalletAppImpl implements WalletApp {
             }
 
             // erc-20 balance
-            const erc20address = getAddress(tokenOrAddress)
+            const erc20address = getAddress(tokenOrAddress);
             const wallet = this.getWalletOrNew(address);
             return wallet.erc20.get(erc20address) ?? 0n;
         } else {
@@ -87,12 +87,30 @@ export class WalletAppImpl implements WalletApp {
         }
     }
 
-    public balanceOfERC721(nftCollectionContractAddress: string | Address, owner: string | Address): bigint {
+    public balanceOfERC721(
+        nftCollectionContractAddress: string | Address,
+        owner: string | Address,
+    ): bigint {
         const ownerAddress = getAddress(owner);
         const wallet = this.getWalletOrNew(ownerAddress);
         const address = getAddress(nftCollectionContractAddress);
-        const collection = wallet.erc721.get(address) ?? new Set();
-        return BigInt(collection.size)
+        const size = wallet.erc721.get(address)?.size ?? 0;
+        return BigInt(size);
+    }
+
+    public balanceOfERC1155(
+        nftCollectionContractAddress: string | Address,
+        tokenId: number,
+        owner: string | Address,
+    ): void {
+        const ownerAddress = getAddress(owner);
+        const wallet = this.getWalletOrNew(ownerAddress);
+        const address = getAddress(nftCollectionContractAddress);
+        const item = wallet.erc1155.get(address);
+        /**
+         * @todo implement balanceOfERC1155
+         */
+        throw new Error("Method not implemented.");
     }
 
     public handler: AdvanceRequestHandler = async (data) => {
@@ -104,14 +122,14 @@ export class WalletAppImpl implements WalletApp {
             this.wallets[sender] = wallet;
             return "accept";
         }
-        console.log('Wallet handler...', JSON.stringify(data, null, 4))
+        console.log("Wallet handler...", JSON.stringify(data, null, 4));
 
         // ERC20 Deposit
         if (isERC20Deposit(data)) {
             const { success, token, sender, amount } = parseERC20Deposit(
                 data.payload,
             );
-            console.log('ERC-20 data', { success, token, sender, amount })
+            console.log("ERC-20 data", { success, token, sender, amount });
             if (success) {
                 const wallet = this.getWalletOrNew(sender);
 
@@ -130,7 +148,7 @@ export class WalletAppImpl implements WalletApp {
 
         // ERC721 Deposit
         if (isERC721Deposit(data)) {
-            console.log('ERC-721 data')
+            console.log("ERC-721 data");
             const { token, sender, tokenId } = parseERC721Deposit(data.payload);
 
             const wallet = this.getWalletOrNew(sender);
@@ -142,14 +160,14 @@ export class WalletAppImpl implements WalletApp {
                 const collection = new Set([tokenId]);
                 wallet.erc721.set(token, collection);
             }
-            console.log(inspect(this.wallets, { depth: null }))
+            console.log(inspect(this.wallets, { depth: null }));
             this.wallets[sender] = wallet;
             return "accept";
         }
 
         // ERC1155 Single Deposit
         if (isERC1155SingleDeposit(data)) {
-            console.log('ERC-1155 single')
+            console.log("ERC-1155 single");
             const { tokenId, sender, token } = parseERC1155SingleDeposit(
                 data.payload,
             );
@@ -159,17 +177,17 @@ export class WalletAppImpl implements WalletApp {
         }
 
         if (isERC1155BatchDeposit(data)) {
-            console.log('ERC-1155 batch')
+            console.log("ERC-1155 batch");
             const { token, sender } = parseERC1155BatchDeposit(data.payload);
         }
 
         // Relay Address
         if (getAddress(data.metadata.msg_sender) === dAppAddressRelayAddress) {
-            console.log('dAppAddressRelayAddress')
+            console.log("dAppAddressRelayAddress");
             this.dapp = getAddress(data.payload);
             return "accept";
         }
-        console.log('Wallet handler reject')
+        console.log("Wallet handler reject");
         // Otherwise, reject
         return "reject";
     };
@@ -280,7 +298,8 @@ export class WalletAppImpl implements WalletApp {
         // check balance
         if (!balance || balance < amount) {
             throw new Error(
-                `insufficient balance of user ${address} of token ${token}: ${amount.toString()} > ${balance?.toString() ?? "0"
+                `insufficient balance of user ${address} of token ${token}: ${amount.toString()} > ${
+                    balance?.toString() ?? "0"
                 }`,
             );
         }
