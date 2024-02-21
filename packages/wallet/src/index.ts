@@ -8,8 +8,6 @@ import {
     hexToBytes,
     parseAbi,
     slice,
-    decodeAbiParameters,
-    parseAbiParameters,
     Hex,
 } from "viem";
 
@@ -21,7 +19,7 @@ import {
     erc1155SinglePortalAddress,
     erc1155BatchPortalAddress,
 } from "./rollups";
-
+// import { parsePacked } from 'viem/utils';
 export type { WalletApp } from "./wallet";
 
 // wallet ABI
@@ -121,8 +119,8 @@ export const parseERC1155SingleDeposit = (
     const sender = getAddress(slice(payload, 20, 40)); // 20 bytes for address
     const tokenId = hexToBigInt(slice(payload, 40, 72), { size: 32 }); // 32 bytes for uint256
     const value = hexToBigInt(slice(payload, 72, 104), { size: 32 }); // 32 bytes for uint256
-    const data = hexToBytes(slice(payload, 104)); // remaining bytes
-    return { token, sender, tokenId, value, data };
+    // TODO: baseLayerData execLayerData
+    return { token, sender, tokenId, value };
 };
 
 /**
@@ -133,15 +131,31 @@ export const parseERC1155SingleDeposit = (
 export const parseERC1155BatchDeposit = (
     payload: Payload,
 ): ERC1155BatchDeposit => {
-    const [token, sender, tokenIds, values, baseLayerData, execLayerData] =
-        decodeAbiParameters(
-            parseAbiParameters(
-                "address token, address sender, uint256[] tokenIds, uint256[] values, bytes baseLayerData, bytes execLayerData",
-            ),
-            payload,
-        );
+    const token = getAddress(slice(payload, 0, 20)); // 20 bytes for address
+    const sender = getAddress(slice(payload, 20, 40)); // 20 bytes for address
 
-    return { token, sender, tokenIds, values, baseLayerData, execLayerData };
+    // skip the dust 4 numbers of 32 bytes
+    const arraySize = hexToBigInt(slice(payload, 168, 200), { size: 32 }); // 32 bytes for uint256
+    const uint256Size = 32;
+    const dataArray = []
+    let lastPosition = 0
+    for (let i = 0; i < arraySize; i++) {
+        const start = i * uint256Size + 200;
+        const end = start + uint256Size;
+        lastPosition = end
+        const number = hexToBigInt(slice(payload, start, end), { size: 32 }); // 32 bytes for uint256
+        dataArray.push(number);
+    }
+    const valueArray = []
+    lastPosition += uint256Size // next array size
+    for (let i = 0; i < arraySize; i++) {
+        const start = i * uint256Size + lastPosition;
+        const end = start + uint256Size;
+        const number = hexToBigInt(slice(payload, start, end), { size: 32 }); // 32 bytes for uint256
+        valueArray.push(number);
+    }
+    // TODO: baseLayerData execLayerData
+    return { token, sender, tokenIds: dataArray, values: valueArray };
 };
 
 export const isEtherDeposit = (data: AdvanceRequestData): boolean =>
