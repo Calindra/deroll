@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { AdvanceRequestData, Payload } from "@deroll/app";
 import {
     Address,
