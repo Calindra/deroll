@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { isERC1155SingleDeposit, parseERC1155SingleDeposit } from "."
 import { inspect } from "node:util";
 import { WalletAppImpl } from "./wallet";
