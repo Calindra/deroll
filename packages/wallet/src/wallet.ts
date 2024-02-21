@@ -181,11 +181,31 @@ export class WalletAppImpl implements WalletApp {
             const tokenBalance = collection.get(tokenId) ?? 0n;
             collection.set(tokenId, tokenBalance + value);
             console.log(inspect(wallet));
+
+            return "accept";
         }
 
+        // ERC1155 Batch Deposit
         if (isERC1155BatchDeposit(data)) {
             console.log("ERC-1155 batch");
-            const { token, sender } = parseERC1155BatchDeposit(data.payload);
+            const { token, sender, tokenIds } = parseERC1155BatchDeposit(
+                data.payload,
+            );
+
+            const wallet = this.getWalletOrNew(sender);
+            let collection = wallet.erc1155.get(token);
+            if (!collection) {
+                collection = new Map();
+                wallet.erc1155.set(token, collection);
+            }
+
+            for (let i = 0; i < tokenIds.length; i++) {
+                const tokenId = tokenIds[i];
+                const tokenBalance = collection.get(tokenId) ?? 0n;
+                collection.set(tokenId, tokenBalance + 1n);
+            }
+
+            return "accept";
         }
 
         // Relay Address
