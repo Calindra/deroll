@@ -23,6 +23,7 @@
         "viem": "^1"
     },
     "devDependencies": {
+        "@deroll/app": "workspace:*",
         "@cartesi/rollups": "^1.0",
         "@deroll/tsconfig": "workspace:*",
         "@sunodo/wagmi-plugin-hardhat-deploy": "^0.2",

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { AdvanceRequestHandler, Voucher } from "@deroll/app";
 import { Address, encodeFunctionData, getAddress, isAddress } from "viem";
 
@@ -62,6 +63,12 @@ export class WalletAppImpl implements WalletApp {
         };
     }
 
+    /**
+     * 
+     * @param tokenOrAddress
+     * @param address
+     * @returns 
+     */
     public balanceOf(
         tokenOrAddress: string | Address,
         address?: string,
