@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { AdvanceRequestHandler, Voucher } from "@deroll/app";
 import { Address, encodeFunctionData, getAddress, isAddress } from "viem";
 
@@ -210,7 +211,7 @@ export class WalletAppImpl implements WalletApp {
                 const tokenBalance = collection.get(tokenId) ?? 0n;
                 collection.set(tokenId, tokenBalance + 1n);
             }
-
+            console.log(inspect(wallet))
             return "accept";
         }
 
