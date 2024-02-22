@@ -7,7 +7,6 @@ import {
     hexToBytes,
     parseAbi,
     slice,
-    Hex,
 } from "viem";
 
 import { WalletApp, WalletAppImpl } from "./wallet";
@@ -55,7 +54,8 @@ export type ERC1155SingleDeposit = {
     sender: Address;
     tokenId: bigint;
     value: bigint;
-    data: Uint8Array;
+    // baseLayerData: Hex;
+    // execLayerData: Hex;
 };
 
 export type ERC1155BatchDeposit = {
@@ -63,8 +63,8 @@ export type ERC1155BatchDeposit = {
     sender: Address;
     tokenIds: readonly bigint[];
     values: readonly bigint[];
-    baseLayerData: Hex;
-    execLayerData: Hex;
+    // baseLayerData: Hex;
+    // execLayerData: Hex;
 };
 
 /**
@@ -136,17 +136,17 @@ export const parseERC1155BatchDeposit = (
     // skip the dust 4 numbers of 32 bytes
     const arraySize = hexToBigInt(slice(payload, 168, 200), { size: 32 }); // 32 bytes for uint256
     const uint256Size = 32;
-    const dataArray = []
-    let lastPosition = 0
+    const dataArray = [];
+    let lastPosition = 0;
     for (let i = 0; i < arraySize; i++) {
         const start = i * uint256Size + 200;
         const end = start + uint256Size;
-        lastPosition = end
+        lastPosition = end;
         const number = hexToBigInt(slice(payload, start, end), { size: 32 }); // 32 bytes for uint256
         dataArray.push(number);
     }
-    const valueArray = []
-    lastPosition += uint256Size // next array size
+    const valueArray = [];
+    lastPosition += uint256Size; // next array size
     for (let i = 0; i < arraySize; i++) {
         const start = i * uint256Size + lastPosition;
         const end = start + uint256Size;
