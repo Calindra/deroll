@@ -1,6 +1,7 @@
 import { AdvanceRequestData, Payload } from "@deroll/app";
 import {
     Address,
+    Hex,
     getAddress,
     hexToBigInt,
     hexToBool,
@@ -17,6 +18,7 @@ import {
     erc1155SinglePortalAddress,
     erc1155BatchPortalAddress,
 } from "./rollups";
+import { decodeAbiParameters, parseAbiParameters } from 'viem';
 // import { parsePacked } from 'viem/utils';
 export type { WalletApp } from "./wallet";
 
@@ -63,8 +65,8 @@ export type ERC1155BatchDeposit = {
     sender: Address;
     tokenIds: readonly bigint[];
     values: readonly bigint[];
-    // baseLayerData: Hex;
-    // execLayerData: Hex;
+    baseLayerData: Hex;
+    execLayerData: Hex;
 };
 
 /**
@@ -133,28 +135,12 @@ export const parseERC1155BatchDeposit = (
     const token = getAddress(slice(payload, 0, 20)); // 20 bytes for address
     const sender = getAddress(slice(payload, 20, 40)); // 20 bytes for address
 
-    // skip the dust 4 numbers of 32 bytes
-    const arraySize = hexToBigInt(slice(payload, 168, 200), { size: 32 }); // 32 bytes for uint256
-    const uint256Size = 32;
-    const dataArray = [];
-    let lastPosition = 0;
-    for (let i = 0; i < arraySize; i++) {
-        const start = i * uint256Size + 200;
-        const end = start + uint256Size;
-        lastPosition = end;
-        const number = hexToBigInt(slice(payload, start, end), { size: 32 }); // 32 bytes for uint256
-        dataArray.push(number);
-    }
-    const valueArray = [];
-    lastPosition += uint256Size; // next array size
-    for (let i = 0; i < arraySize; i++) {
-        const start = i * uint256Size + lastPosition;
-        const end = start + uint256Size;
-        const number = hexToBigInt(slice(payload, start, end), { size: 32 }); // 32 bytes for uint256
-        valueArray.push(number);
-    }
-    // TODO: baseLayerData execLayerData
-    return { token, sender, tokenIds: dataArray, values: valueArray };
+    const commonPayload = slice(payload, 40);
+    const [tokenIds, values, baseLayerData, execLayerData] = decodeAbiParameters(
+        parseAbiParameters('uint256[] tokenIds, uint256[] values, bytes baseLayerData, bytes execLayerData'),
+        commonPayload
+    )
+    return { token, sender, tokenIds, values, baseLayerData, execLayerData };
 };
 
 export const isEtherDeposit = (data: AdvanceRequestData): boolean =>

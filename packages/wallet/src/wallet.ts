@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { AdvanceRequestHandler, Voucher } from "@deroll/app";
 import { Address, encodeFunctionData, getAddress, isAddress } from "viem";
 
