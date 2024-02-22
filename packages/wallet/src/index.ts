@@ -17,7 +17,6 @@ import {
     erc1155SinglePortalAddress,
     erc1155BatchPortalAddress,
 } from "./rollups";
-// import { parsePacked } from 'viem/utils';
 export type { WalletApp } from "./wallet";
 
 // wallet ABI
