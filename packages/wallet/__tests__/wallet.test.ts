@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "vitest";
-import { Address, encodePacked, zeroAddress } from "viem";
+import { Address, bytesToHex, encodePacked } from "viem";
 
 import {
     createWallet,
@@ -8,6 +8,13 @@ import {
     parseEtherDeposit,
 } from "../src";
 import { erc20PortalAddress, etherPortalAddress } from "../src/rollups";
+import { getRandomValues } from "node:crypto";
+
+function generateAddress(): Address {
+    const address = new Uint8Array(20);
+    const random = getRandomValues(address);
+    return bytesToHex(random);
+}
 
 describe("Wallet", () => {
     beforeEach(() => {});
@@ -141,7 +148,40 @@ describe("Wallet", () => {
         expect(wallet.balanceOf(sender.toLowerCase())).toEqual(value);
     });
 
-    test.todo("deposit ERC20", () => {});
+    test("deposit ERC20", async () => {
+        const wallet = createWallet();
+        const token = generateAddress();
+        const amount = 123456n;
+        const sender = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
+        const metadata = {
+            msg_sender: erc20PortalAddress,
+            block_number: 0,
+            epoch_index: 0,
+            input_index: 0,
+            timestamp: 0,
+        };
+
+        // add value to wallet of token
+        const funds = encodePacked(["address", "uint256"], [token, amount]);
+        const responseFunds = await wallet.handler({
+            metadata,
+            payload: funds,
+        });
+        expect(responseFunds).toEqual("accept");
+        expect(wallet.balanceOf(token)).toEqual(amount);
+
+        const addresses = encodePacked(["address", "address"], [token, sender]);
+
+        const payload = encodePacked(
+            ["bool", "address", "address", "uint256", "bytes"],
+            [true, token, sender, amount, "0x"],
+        );
+        console.log(payload);
+        // success, token, sender, amount
+        const response = await wallet.handler({ metadata, payload });
+        expect(response).toEqual("accept");
+        expect(wallet.balanceOf(token)).toEqual(amount);
+    });
 
     test.todo("transfer ETH without balance", () => {});
 
