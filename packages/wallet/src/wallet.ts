@@ -99,25 +99,30 @@ export class WalletAppImpl implements WalletApp {
     }
 
     public balanceOfERC721(
-        nftCollectionContractAddress: string | Address,
+        address: string | Address,
         owner: string | Address,
     ): bigint {
         const ownerAddress = getAddress(owner);
         const wallet = this.getWalletOrNew(ownerAddress);
-        const address = getAddress(nftCollectionContractAddress);
-        const size = wallet.erc721.get(address)?.size ?? 0;
+        if (isAddress(address)) {
+            address = getAddress(address);
+        }
+        const size = wallet.erc721.get(address as Address)?.size ?? 0n;
         return BigInt(size);
     }
 
     public balanceOfERC1155(
-        nftCollectionContractAddress: string | Address,
-        tokenId: number,
+        addresses: string | Address | (string | Address)[],
+        tokenIds: bigint | bigint[],
         owner: string | Address,
-    ): void {
+    ): bigint | bigint[] {
+        if (!Array.isArray(addresses)) {
+            addresses = [addresses];
+        }
         const ownerAddress = getAddress(owner);
         const wallet = this.getWalletOrNew(ownerAddress);
-        const address = getAddress(nftCollectionContractAddress);
-        const item = wallet.erc1155.get(address);
+        const addr = addresses.map((address) => getAddress(address));
+        // const item = wallet.erc1155.get(address);
         /**
          * @todo implement balanceOfERC1155
          */
