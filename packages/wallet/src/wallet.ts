@@ -1,7 +1,12 @@
 import { AdvanceRequestHandler, Voucher } from "@deroll/app";
 import { Address, encodeFunctionData, getAddress, isAddress } from "viem";
 
-import { cartesiDAppAbi, dAppAddressRelayAddress, erc20Abi } from "./rollups";
+import {
+    cartesiDAppAbi,
+    dAppAddressRelayAddress,
+    erc20Abi,
+    erc1155Abi,
+} from "./rollups";
 import {
     isERC20Deposit,
     isEtherDeposit,
@@ -350,6 +355,57 @@ export class WalletAppImpl implements WalletApp {
         return {
             destination: token,
             payload: call,
+        };
+    }
+
+    withdrawERC1155(
+        token: Address,
+        address: Address,
+        tokenIds: bigint[],
+        values: bigint[],
+    ): Voucher {
+        if (tokenIds.length !== values.length) {
+            throw new Error(
+                `tokenIds(size: ${tokenIds.length})) and values(size: ${values.length}) must have the same length`,
+            );
+        }
+
+        // normalize addresses
+        token = getAddress(token);
+        address = getAddress(address);
+
+        const wallet = this.wallets[address];
+        const nfts = wallet?.erc1155.get(token);
+
+        // check balance
+        for (let i = 0; i < tokenIds.length; i++) {
+            const tokenId = tokenIds[i];
+            const value = values[i];
+            if (value < 0n) {
+                throw new Error(
+                    `negative value for tokenId ${tokenId}: ${value}`,
+                );
+            }
+            const balance = nfts?.get(tokenId) ?? 0n;
+            if (balance < value) {
+                throw new Error(
+                    `insufficient balance of user ${address} of token ${token} of tokenId ${tokenId}: ${value.toString()} > ${
+                        balance.toString() ?? "0"
+                    }`,
+                );
+            }
+        }
+
+        for (let i = 0; i < tokenIds.length; i++) {
+            const tokenId = tokenIds[i];
+            const value = values[i];
+            const balance = nfts?.get(tokenId) ?? 0n;
+            nfts?.set(tokenId, balance - value);
+        }
+
+        return {
+            destination: token,
+            payload: "mamaefalei",
         };
     }
 }
