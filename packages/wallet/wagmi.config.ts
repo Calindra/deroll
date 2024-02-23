@@ -2,7 +2,10 @@ import type { Abi } from "abitype";
 import { defineConfig } from "@wagmi/cli";
 import { erc20Abi, erc721Abi } from "viem";
 import hardhatDeploy from "@sunodo/wagmi-plugin-hardhat-deploy";
-import CartesiDApp from "@cartesi/rollups/export/artifacts/contracts/dapp/CartesiDApp.sol/CartesiDApp.json";
+// @ts-ignore
+import CartesiDApp from "@cartesi/rollups/export/artifacts/contracts/dapp/CartesiDApp.sol/CartesiDApp.json" assert { type: "json" };
+// @ts-ignore
+import erc1155Abi from "./smart_contracts/erc1155-abi.json" assert { type: "json" };
 
 export default defineConfig({
     out: "src/rollups.ts",
@@ -14,6 +17,10 @@ export default defineConfig({
         {
             name: "erc721",
             abi: erc721Abi,
+        },
+        {
+            name: "erc1155",
+            abi: erc1155Abi as Abi,
         },
         {
             name: CartesiDApp.contractName,
