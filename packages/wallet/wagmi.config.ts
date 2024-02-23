@@ -2,8 +2,7 @@ import type { Abi } from "abitype";
 import { defineConfig } from "@wagmi/cli";
 import { erc20Abi, erc721Abi } from "viem";
 import hardhatDeploy from "@sunodo/wagmi-plugin-hardhat-deploy";
-// @ts-ignore
-import CartesiDApp from "@cartesi/rollups/export/artifacts/contracts/dapp/CartesiDApp.sol/CartesiDApp.json" assert { type: "json" };
+import CartesiDApp from "@cartesi/rollups/export/artifacts/contracts/dapp/CartesiDApp.sol/CartesiDApp.json";
 
 export default defineConfig({
     out: "src/rollups.ts",
