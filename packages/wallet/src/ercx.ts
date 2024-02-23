@@ -1,25 +1,68 @@
-import { isERC1155SingleDeposit, parseERC1155SingleDeposit } from "."
+import { isERC1155SingleDeposit, parseERC1155SingleDeposit } from ".";
 import { inspect } from "node:util";
 import { WalletAppImpl } from "./wallet";
-import { AdvanceRequestData } from "@deroll/app";
+import { AdvanceRequestData, RequestMetadata } from "@deroll/app";
+import { isAddress, isHex } from "viem";
+
+// Utils
+const isNum = (x: unknown): x is number =>
+    typeof x === "number" && !Number.isNaN(x);
+const haveKeys = <T extends object>(
+    obj: unknown,
+    keys: (keyof T)[],
+): obj is T =>
+    typeof obj === "object" && obj !== null && keys.every((key) => key in obj);
+
+const checkMetadata = (metadata: unknown): metadata is RequestMetadata => {
+    return (
+        haveKeys(metadata, [
+            "msg_sender",
+            "epoch_index",
+            "input_index",
+            "block_number",
+            "timestamp",
+        ]) &&
+        isAddress(metadata.msg_sender) &&
+        isNum(metadata.epoch_index) &&
+        isNum(metadata.input_index) &&
+        isNum(metadata.block_number) &&
+        isNum(metadata.timestamp)
+    );
+};
+
+const isValidAdvanceRequestData = (
+    data: unknown,
+): data is AdvanceRequestData => {
+    return (
+        haveKeys(data, ["payload", "metadata"]) &&
+        checkMetadata(data.metadata) &&
+        isHex(data.payload)
+    );
+};
 
 export interface ERCHandler {
-    isDeposit(data: any): boolean
+    isDeposit(data: unknown): boolean;
 
     /**
      * Does not reject
-     * @param data 
+     * @param data
      */
-    handle(data: AdvanceRequestData, wallets: WalletAppImpl): void
+    handle(data: unknown, wallets: WalletAppImpl): void;
 }
 
 export class ERC1155Single implements ERCHandler {
-    isDeposit(data: any): boolean {
-        return isERC1155SingleDeposit(data)
+    isDeposit(data: unknown): boolean {
+        if (!isValidAdvanceRequestData(data)) {
+            return false;
+        }
+        return isERC1155SingleDeposit(data);
     }
 
-    handle(data: any, wallets: WalletAppImpl): void {
+    handle(data: unknown, wallets: WalletAppImpl): void {
         console.log("ERC-1155 single");
+        if (!isValidAdvanceRequestData(data)) {
+            throw new Error("Invalid data");
+        }
         const { tokenId, sender, token, value } = parseERC1155SingleDeposit(
             data.payload,
         );
@@ -34,5 +77,4 @@ export class ERC1155Single implements ERCHandler {
         collection.set(tokenId, tokenBalance + value);
         console.log(inspect(wallet));
     }
-
 }
