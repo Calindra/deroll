@@ -361,9 +361,31 @@ export class WalletAppImpl implements WalletApp {
     withdrawERC1155(
         token: Address,
         address: Address,
-        tokenIds: bigint[],
-        values: bigint[],
+        tokenIds: bigint | bigint[],
+        values: bigint | bigint[],
     ): Voucher {
+        // check arguments consistency
+        // const tokenIdsIsArr = Array.isArray(tokenIds);
+        // const valuesIsArr = Array.isArray(values);
+        //
+        // if ((tokenIdsIsArr || valuesIsArr) && !(tokenIdsIsArr && valuesIsArr)) {
+        //     throw new Error(
+        //         "tokenIds and values must be arrays or bigints both",
+        //     );
+        // }
+
+        if (!Array.isArray(tokenIds)) {
+            tokenIds = [tokenIds];
+        }
+
+        if (!Array.isArray(values)) {
+            values = [values];
+        }
+
+        if (!tokenIds.length || !values.length) {
+            throw new Error("tokenIds and values must not be empty");
+        }
+
         if (tokenIds.length !== values.length) {
             throw new Error(
                 `tokenIds(size: ${tokenIds.length})) and values(size: ${values.length}) must have the same length`,
@@ -374,8 +396,13 @@ export class WalletAppImpl implements WalletApp {
         token = getAddress(token);
         address = getAddress(address);
 
-        const wallet = this.wallets[address];
-        const nfts = wallet?.erc1155.get(token);
+        const wallet = this.getWalletOrNew(address);
+        let nfts = wallet.erc1155.get(token);
+
+        if (!nfts) {
+            nfts = new Map();
+            wallet.erc1155.set(token, nfts);
+        }
 
         // check balance
         for (let i = 0; i < tokenIds.length; i++) {
@@ -386,7 +413,7 @@ export class WalletAppImpl implements WalletApp {
                     `negative value for tokenId ${tokenId}: ${value}`,
                 );
             }
-            const balance = nfts?.get(tokenId) ?? 0n;
+            const balance = nfts.get(tokenId) ?? 0n;
             if (balance < value) {
                 throw new Error(
                     `insufficient balance of user ${address} of token ${token} of tokenId ${tokenId}: ${value.toString()} > ${
@@ -399,13 +426,27 @@ export class WalletAppImpl implements WalletApp {
         for (let i = 0; i < tokenIds.length; i++) {
             const tokenId = tokenIds[i];
             const value = values[i];
-            const balance = nfts?.get(tokenId) ?? 0n;
-            nfts?.set(tokenId, balance - value);
+            const balance = nfts.get(tokenId) ?? 0n;
+            nfts.set(tokenId, balance - value);
+        }
+
+        let call = encodeFunctionData({
+            abi: erc1155Abi,
+            functionName: "safeBatchTransferFrom",
+            args: [token, address, tokenIds, values, "0x"],
+        });
+
+        if (tokenIds.length === 1 && values.length === 1) {
+            call = encodeFunctionData({
+                abi: erc1155Abi,
+                functionName: "safeTransferFrom",
+                args: [token, address, tokenIds[0], values[0], "0x"],
+            });
         }
 
         return {
             destination: token,
-            payload: "mamaefalei",
+            payload: call,
         };
     }
 }
