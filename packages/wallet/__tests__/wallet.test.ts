@@ -149,7 +149,7 @@ describe("Wallet", () => {
         expect(wallet.balanceOf(sender.toLowerCase())).toEqual(value);
     });
 
-    test.skip("deposit ERC20", async () => {
+    test("deposit ERC20", async () => {
         const wallet = createWallet();
         const token = generateAddress();
         const amount = 123456n;
@@ -162,34 +162,14 @@ describe("Wallet", () => {
             timestamp: 0,
         };
 
-        // add value to wallet of token
-        const funds = encodePacked(["address", "uint256"], [token, amount]);
-        const responseFunds = await wallet.handler({
-            metadata,
-            payload: funds,
-        });
-        expect(responseFunds).toEqual("accept");
-        expect(wallet.balanceOf(token)).toEqual(amount);
+        const payload = encodePacked(
+            ["bool", "address", "address", "uint256", "bytes"],
+            [true, token, sender, amount, "0x"],
+        );
 
-        // const addresses = encodePacked(["address", "address"], [token, sender]);
-
-        const payload = encodeAbiParameters([{ type: "bool" }], [true]);
-
-        // const payload = encodePacked(
-        //     [
-        //         { type: "bool" },
-        //         { type: "address" },
-        //         { type: "address" },
-        //         { type: "uint256" },
-        //         { type: "bytes" },
-        //     ],
-        //     [true, token, sender, amount, "0x"],
-        // );
-
-        // success, token, sender, amount
         const response = await wallet.handler({ metadata, payload });
         expect(response).toEqual("accept");
-        expect(wallet.balanceOf(token)).toEqual(amount);
+        expect(wallet.balanceOf(token, sender)).toEqual(amount);
     });
 
     test.todo("transfer ETH without balance", () => {});
