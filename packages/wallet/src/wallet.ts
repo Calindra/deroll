@@ -196,8 +196,8 @@ export class WalletAppImpl implements WalletApp {
             }
             const tokenBalance = collection.get(tokenId) ?? 0n;
             collection.set(tokenId, tokenBalance + value);
+            this.wallets[sender] = wallet;
             console.log(inspect(wallet));
-
             return "accept";
         }
 
@@ -220,7 +220,8 @@ export class WalletAppImpl implements WalletApp {
                 const tokenBalance = collection.get(tokenId) ?? 0n;
                 collection.set(tokenId, tokenBalance + 1n);
             }
-            console.log(inspect(wallet));
+            this.wallets[sender] = wallet;
+            console.log(inspect(this));
             return "accept";
         }
 
