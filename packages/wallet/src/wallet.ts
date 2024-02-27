@@ -436,17 +436,18 @@ export class WalletAppImpl implements WalletApp {
             nfts.set(tokenId, balance - value);
         }
 
+        const dappAddress = '0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C'
         let call = encodeFunctionData({
             abi: erc1155Abi,
             functionName: "safeBatchTransferFrom",
-            args: [token, address, tokenIds, values, "0x"],
+            args: [dappAddress, address, tokenIds, values, "0x"],
         });
 
         if (tokenIds.length === 1 && values.length === 1) {
             call = encodeFunctionData({
                 abi: erc1155Abi,
                 functionName: "safeTransferFrom",
-                args: [token, address, tokenIds[0], values[0], "0x"],
+                args: [dappAddress, address, tokenIds[0], values[0], "0x"],
             });
         }
 
