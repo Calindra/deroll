@@ -48,14 +48,20 @@ export interface WalletApp {
 
 export class WalletAppImpl implements WalletApp {
     private dapp?: Address;
-    private wallets: Record<string, Wallet> = {};
+    private wallets = new Map<string, Wallet>();
 
     constructor() {
         this.handler = this.handler.bind(this);
     }
 
     getWalletOrNew(address: string): Wallet {
-        return this.wallets[address] ?? this.createDefaultWallet();
+        const wallet = this.wallets.get(address);
+
+        if (wallet) {
+            return wallet;
+        }
+
+        return this.createDefaultWallet();
     }
 
     createDefaultWallet(): Wallet {
@@ -94,7 +100,7 @@ export class WalletAppImpl implements WalletApp {
             }
 
             // ether balance
-            return this.wallets[tokenOrAddress]?.ether ?? 0n;
+            return this.wallets.get(tokenOrAddress)?.ether ?? 0n;
         }
     }
 
@@ -135,7 +141,7 @@ export class WalletAppImpl implements WalletApp {
             const { sender, value } = parseEtherDeposit(data.payload);
             const wallet = this.getWalletOrNew(sender);
             wallet.ether += value;
-            this.wallets[sender] = wallet;
+            this.wallets.set(sender, wallet);
             return "accept";
         }
         console.log("Wallet handler...", JSON.stringify(data, null, 4));
@@ -157,7 +163,7 @@ export class WalletAppImpl implements WalletApp {
                     wallet.erc20.set(token, amount);
                 }
 
-                this.wallets[sender] = wallet;
+                this.wallets.set(sender, wallet);
             }
             return "accept";
         }
@@ -177,7 +183,7 @@ export class WalletAppImpl implements WalletApp {
                 wallet.erc721.set(token, collection);
             }
             console.log(inspect(this.wallets, { depth: null }));
-            this.wallets[sender] = wallet;
+            this.wallets.set(sender, wallet);
             return "accept";
         }
 
@@ -196,7 +202,7 @@ export class WalletAppImpl implements WalletApp {
             }
             const tokenBalance = collection.get(tokenId) ?? 0n;
             collection.set(tokenId, tokenBalance + value);
-            this.wallets[sender] = wallet;
+            this.wallets.set(sender, wallet);
             console.log(inspect(wallet));
             return "accept";
         }
@@ -220,7 +226,7 @@ export class WalletAppImpl implements WalletApp {
                 const tokenBalance = collection.get(tokenId) ?? 0n;
                 collection.set(tokenId, tokenBalance + 1n);
             }
-            this.wallets[sender] = wallet;
+            this.wallets.set(sender, wallet);
             console.log(inspect(this));
             return "accept";
         }
@@ -254,8 +260,8 @@ export class WalletAppImpl implements WalletApp {
 
         walletFrom.ether = walletFrom.ether - amount;
         walletTo.ether = walletTo.ether + amount;
-        this.wallets[from] = walletFrom;
-        this.wallets[to] = walletTo;
+        this.wallets.set(from, walletFrom);
+        this.wallets.set(to, walletTo);
     }
 
     transferERC20(
@@ -294,8 +300,8 @@ export class WalletAppImpl implements WalletApp {
             walletTo.erc20.set(token, amount);
         }
 
-        this.wallets[from] = walletFrom;
-        this.wallets[to] = walletTo;
+        this.wallets.set(from, walletFrom);
+        this.wallets.set(to, walletTo);
     }
 
     transferERC721(
@@ -342,7 +348,11 @@ export class WalletAppImpl implements WalletApp {
         // normalize address
         address = getAddress(address);
 
-        const wallet = this.wallets[address];
+        const wallet = this.wallets.get(address);
+
+        if (!wallet) {
+            throw new Error(`wallet of user ${address} is undefined`);
+        }
 
         // check if dapp address is defined
         if (!this.dapp) {
@@ -350,7 +360,7 @@ export class WalletAppImpl implements WalletApp {
         }
 
         // check balance
-        if (!wallet || wallet.ether < amount) {
+        if (wallet.ether < amount) {
             throw new Error(
                 `insufficient balance of user ${address}: ${amount.toString()} > ${wallet.ether.toString()}`,
             );
@@ -376,7 +386,12 @@ export class WalletAppImpl implements WalletApp {
         token = getAddress(token);
         address = getAddress(address);
 
-        const wallet = this.wallets[address];
+        const wallet = this.wallets.get(address);
+
+        if (!wallet) {
+            throw new Error(`wallet of user ${address} is undefined`);
+        }
+
         const balance = wallet?.erc20.get(token);
 
         // check balance

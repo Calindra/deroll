@@ -97,7 +97,6 @@ export const parseERC721Deposit = (payload: Payload): ERC721Deposit => {
     const token = getAddress(slice(payload, 0, 20)); // 20 bytes for address
     const sender = getAddress(slice(payload, 20, 40)); // 20 bytes for address
     const commonPayload = slice(payload, 40);
-    console.log({ payload });
     const [tokenId] = decodeAbiParameters(
         parseAbiParameters("uint256 tokenId"),
         commonPayload,
