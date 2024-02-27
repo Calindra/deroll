@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, test } from "vitest";
-import { Address, bytesToHex, encodeAbiParameters, encodePacked } from "viem";
+import {
+    Address,
+    Hex,
+    bytesToHex,
+    encodeAbiParameters,
+    encodePacked,
+} from "viem";
 
 import {
     createWallet,
@@ -175,6 +181,28 @@ describe("Wallet", () => {
         const response = await wallet.handler({ metadata, payload });
         expect(response).toEqual("accept");
         expect(wallet.balanceOf(token, sender)).toEqual(amount);
+    });
+
+    test("deposit ERC721", async () => {
+        const token = generateAddress();
+        const sender = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
+        const tokenId = 123456n;
+
+        const wallet = createWallet();
+        const metadata = {
+            msg_sender: erc721PortalAddress,
+            block_number: 0,
+            epoch_index: 0,
+            input_index: 0,
+            timestamp: 0,
+        };
+
+        const payload = encodePacked(
+            ["address", "address", "uint256", "bytes", "bytes"],
+            [token, sender, tokenId, "0x", "0x"],
+        ) as Hex;
+
+        const response = await wallet.handler({ metadata, payload });
     });
 
     test.skip("transfer ERC721", async () => {

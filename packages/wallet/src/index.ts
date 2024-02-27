@@ -104,14 +104,21 @@ export const parseERC721Deposit = (payload: Payload): ERC721Deposit => {
     const token = getAddress(slice(payload, 0, 20)); // 20 bytes for address
     const sender = getAddress(slice(payload, 20, 40)); // 20 bytes for address
     const commonPayload = slice(payload, 40);
+    console.log({ payload });
     const [tokenId, baseLayerData, execLayerData] = decodeAbiParameters(
-        parseAbiParameters(
-            "uint256 tokenId, bytes baseLayerData, bytes execLayerData",
-        ),
+        parseAbiParameters("uint256 tokenId"),
         commonPayload,
     );
 
-    return { token, sender, tokenId, baseLayerData, execLayerData };
+    console.log({ token, sender, tokenId, baseLayerData, execLayerData });
+
+    return {
+        token,
+        sender,
+        tokenId,
+        baseLayerData: "0x",
+        execLayerData: "0x",
+    };
 };
 
 /**
@@ -126,12 +133,8 @@ export const parseERC1155SingleDeposit = (
     const sender = getAddress(slice(payload, 20, 40)); // 20 bytes for address
 
     const commonPayload = slice(payload, 40);
-    console.log({ token, sender, commonPayload, payload });
     const [tokenId, value, baseLayerData, execLayerData] = decodeAbiParameters(
-        parseAbiParameters(
-            "uint256 tokenId, uint256 value",
-            // , bytes baseLayerData, bytes execLayerData
-        ),
+        parseAbiParameters("uint256 tokenId, uint256 value"),
         commonPayload,
     );
 
