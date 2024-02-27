@@ -6,9 +6,14 @@ import {
     isERC20Deposit,
     isEtherDeposit,
     parseERC1155BatchDeposit,
+    parseERC1155SingleDeposit,
     parseEtherDeposit,
 } from "../src";
-import { erc20PortalAddress, etherPortalAddress } from "../src/rollups";
+import {
+    erc20PortalAddress,
+    erc721PortalAddress,
+    etherPortalAddress,
+} from "../src/rollups";
 import { getRandomValues } from "node:crypto";
 
 function generateAddress(): Address {
@@ -172,6 +177,28 @@ describe("Wallet", () => {
         expect(wallet.balanceOf(token, sender)).toEqual(amount);
     });
 
+    test.skip("transfer ERC721", async () => {
+        const from = generateAddress();
+        const to = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
+
+        const wallet = createWallet();
+        const tokenId = 123456n;
+        const metadata = {
+            msg_sender: erc721PortalAddress,
+            block_number: 0,
+            epoch_index: 0,
+            input_index: 0,
+            timestamp: 0,
+        };
+
+        const payload = encodePacked(
+            ["address", "address", "uint256", "bytes", "bytes"],
+            [from, to, tokenId, "0x", "0x"],
+        );
+
+        const response = await wallet.handler({ metadata, payload });
+    });
+
     test.todo("transfer ETH without balance", () => {});
 
     test.todo("transfer ETH", () => {});
@@ -205,6 +232,32 @@ describe("Wallet", () => {
     test.todo("withdrawERC20Route reject no balance", async () => {});
 
     test.todo("withdrawERC20Route", async () => {});
+
+    test("parseERC1155SingleDeposit", async () => {
+        const address = "0xf252ee8851e87c530de36e798a0e2f28ce100477";
+        const sender = "0x18930e8a66a1dbe21d00581216789aab7460afd0";
+        const tokenId = 123456n;
+        const value = 1n;
+
+        // const payload =
+        // "0xf252ee8851e87c530de36e798a0e2f28ce10047718930e8a66a1dbe21d00581216789aab7460afd0000000000000000000000000000000000000000000000000000000000001e240000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
+        const payload = encodePacked(
+            ["address", "address", "uint256", "uint256", "bytes", "bytes"],
+            [address, sender, tokenId, value, "0x", "0x"],
+        );
+
+        const result = parseERC1155SingleDeposit(payload);
+        expect(result.token.toLowerCase()).toEqual(
+            "0xf252ee8851e87c530de36e798a0e2f28ce100477",
+        );
+        expect(result.sender.toLowerCase()).toEqual(
+            "0x18930e8a66a1dbe21d00581216789aab7460afd0",
+        );
+        expect(result.tokenId).toEqual(123456n);
+        expect(result.value).toEqual(1n);
+        expect(result.baseLayerData).toEqual("0x");
+        expect(result.execLayerData).toEqual("0x");
+    });
 
     test("parseERC1155BatchDeposit", async () => {
         const payload = `0x3aa5ebb10dc797cac828524e59a333d0a371443cf39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000016000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000005000000000000000000000000000000000000000000000000000000000000000700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000`;

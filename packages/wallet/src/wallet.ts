@@ -298,6 +298,46 @@ export class WalletAppImpl implements WalletApp {
         this.wallets[to] = walletTo;
     }
 
+    transferERC721(
+        token: Address,
+        from: string,
+        to: string,
+        tokenId: bigint,
+    ): void {
+        // normalize addresses
+        if (isAddress(from)) {
+            from = getAddress(from);
+        }
+        if (isAddress(to)) {
+            to = getAddress(to);
+        }
+
+        const walletFrom = this.getWalletOrNew(from);
+        const walletTo = this.getWalletOrNew(to);
+
+        const balance = walletFrom.erc721.get(token);
+
+        if (!balance) {
+            throw new Error(
+                `insufficient balance of user ${from} of token ${token}`,
+            );
+        }
+
+        if (!balance.has(tokenId)) {
+            throw new Error(
+                `user ${from} does not have token ${tokenId} of token ${token}`,
+            );
+        }
+
+        let balanceTo = walletTo.erc721.get(token);
+        if (!balanceTo) {
+            balanceTo = new Set();
+            walletTo.erc721.set(token, balanceTo);
+        }
+        balanceTo.add(tokenId);
+        balance.delete(tokenId);
+    }
+
     withdrawEther(address: Address, amount: bigint): Voucher {
         // normalize address
         address = getAddress(address);

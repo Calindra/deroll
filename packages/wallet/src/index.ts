@@ -6,7 +6,6 @@ import {
     getAddress,
     hexToBigInt,
     hexToBool,
-    hexToBytes,
     parseAbi,
     slice,
 } from "viem";
@@ -19,7 +18,7 @@ import {
     erc1155SinglePortalAddress,
     erc1155BatchPortalAddress,
 } from "./rollups";
-import { decodeAbiParameters, parseAbiParameters } from 'viem';
+import { decodeAbiParameters, parseAbiParameters } from "viem";
 export type { WalletApp } from "./wallet";
 
 // wallet ABI
@@ -48,7 +47,8 @@ export type ERC721Deposit = {
     token: Address;
     sender: Address;
     tokenId: bigint;
-    data: Uint8Array;
+    baseLayerData: Hex;
+    execLayerData: Hex;
 };
 
 export type ERC1155SingleDeposit = {
@@ -56,8 +56,8 @@ export type ERC1155SingleDeposit = {
     sender: Address;
     tokenId: bigint;
     value: bigint;
-    // baseLayerData: Hex;
-    // execLayerData: Hex;
+    baseLayerData: Hex;
+    execLayerData: Hex;
 };
 
 export type ERC1155BatchDeposit = {
@@ -103,9 +103,15 @@ export const parseERC20Deposit = (payload: Payload): ERC20Deposit => {
 export const parseERC721Deposit = (payload: Payload): ERC721Deposit => {
     const token = getAddress(slice(payload, 0, 20)); // 20 bytes for address
     const sender = getAddress(slice(payload, 20, 40)); // 20 bytes for address
-    const tokenId = hexToBigInt(slice(payload, 40, 72), { size: 32 }); // 32 bytes for uint256
-    const data = hexToBytes(slice(payload, 72)); // remaining bytes
-    return { token, sender, tokenId, data };
+    const commonPayload = slice(payload, 40);
+    const [tokenId, baseLayerData, execLayerData] = decodeAbiParameters(
+        parseAbiParameters(
+            "uint256 tokenId, bytes baseLayerData, bytes execLayerData",
+        ),
+        commonPayload,
+    );
+
+    return { token, sender, tokenId, baseLayerData, execLayerData };
 };
 
 /**
@@ -118,10 +124,25 @@ export const parseERC1155SingleDeposit = (
 ): ERC1155SingleDeposit => {
     const token = getAddress(slice(payload, 0, 20)); // 20 bytes for address
     const sender = getAddress(slice(payload, 20, 40)); // 20 bytes for address
-    const tokenId = hexToBigInt(slice(payload, 40, 72), { size: 32 }); // 32 bytes for uint256
-    const value = hexToBigInt(slice(payload, 72, 104), { size: 32 }); // 32 bytes for uint256
-    // TODO: baseLayerData execLayerData
-    return { token, sender, tokenId, value };
+
+    const commonPayload = slice(payload, 40);
+    console.log({ token, sender, commonPayload, payload });
+    const [tokenId, value, baseLayerData, execLayerData] = decodeAbiParameters(
+        parseAbiParameters(
+            "uint256 tokenId, uint256 value",
+            // , bytes baseLayerData, bytes execLayerData
+        ),
+        commonPayload,
+    );
+
+    return {
+        token,
+        sender,
+        tokenId,
+        value,
+        baseLayerData: "0x",
+        execLayerData: "0x",
+    };
 };
 
 /**
@@ -136,10 +157,13 @@ export const parseERC1155BatchDeposit = (
     const sender = getAddress(slice(payload, 20, 40)); // 20 bytes for address
 
     const commonPayload = slice(payload, 40);
-    const [tokenIds, values, baseLayerData, execLayerData] = decodeAbiParameters(
-        parseAbiParameters('uint256[] tokenIds, uint256[] values, bytes baseLayerData, bytes execLayerData'),
-        commonPayload
-    )
+    const [tokenIds, values, baseLayerData, execLayerData] =
+        decodeAbiParameters(
+            parseAbiParameters(
+                "uint256[] tokenIds, uint256[] values, bytes baseLayerData, bytes execLayerData",
+            ),
+            commonPayload,
+        );
     return { token, sender, tokenIds, values, baseLayerData, execLayerData };
 };
 
