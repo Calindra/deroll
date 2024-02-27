@@ -144,7 +144,7 @@ export class WalletAppImpl implements WalletApp {
             this.wallets.set(sender, wallet);
             return "accept";
         }
-        console.log("Wallet handler...", JSON.stringify(data, null, 4));
+        console.log("Wallet handler...", inspect(data, { depth: null }));
 
         // ERC20 Deposit
         if (isERC20Deposit(data)) {
@@ -182,7 +182,6 @@ export class WalletAppImpl implements WalletApp {
                 const collection = new Set([tokenId]);
                 wallet.erc721.set(token, collection);
             }
-            console.log(inspect(this.wallets, { depth: null }));
             this.wallets.set(sender, wallet);
             return "accept";
         }
@@ -203,7 +202,6 @@ export class WalletAppImpl implements WalletApp {
             const tokenBalance = collection.get(tokenId) ?? 0n;
             collection.set(tokenId, tokenBalance + value);
             this.wallets.set(sender, wallet);
-            console.log(inspect(wallet));
             return "accept";
         }
 
@@ -227,7 +225,6 @@ export class WalletAppImpl implements WalletApp {
                 collection.set(tokenId, tokenBalance + 1n);
             }
             this.wallets.set(sender, wallet);
-            console.log(inspect(this));
             return "accept";
         }
 

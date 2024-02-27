@@ -75,6 +75,6 @@ export class ERC1155Single implements ERCHandler {
         }
         const tokenBalance = collection.get(tokenId) ?? 0n;
         collection.set(tokenId, tokenBalance + value);
-        console.log(inspect(wallet));
+        console.log("Wallet", inspect(wallet));
     }
 }
