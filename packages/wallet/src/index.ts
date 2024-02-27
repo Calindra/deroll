@@ -2,7 +2,6 @@
 import { AdvanceRequestData, Payload } from "@deroll/app";
 import {
     Address,
-    Hex,
     getAddress,
     hexToBigInt,
     hexToBool,
@@ -47,8 +46,6 @@ export type ERC721Deposit = {
     token: Address;
     sender: Address;
     tokenId: bigint;
-    baseLayerData: Hex;
-    execLayerData: Hex;
 };
 
 export type ERC1155SingleDeposit = {
@@ -56,8 +53,6 @@ export type ERC1155SingleDeposit = {
     sender: Address;
     tokenId: bigint;
     value: bigint;
-    baseLayerData: Hex;
-    execLayerData: Hex;
 };
 
 export type ERC1155BatchDeposit = {
@@ -65,8 +60,6 @@ export type ERC1155BatchDeposit = {
     sender: Address;
     tokenIds: readonly bigint[];
     values: readonly bigint[];
-    baseLayerData: Hex;
-    execLayerData: Hex;
 };
 
 /**
