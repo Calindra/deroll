@@ -98,19 +98,15 @@ export const parseERC721Deposit = (payload: Payload): ERC721Deposit => {
     const sender = getAddress(slice(payload, 20, 40)); // 20 bytes for address
     const commonPayload = slice(payload, 40);
     console.log({ payload });
-    const [tokenId, baseLayerData, execLayerData] = decodeAbiParameters(
+    const [tokenId] = decodeAbiParameters(
         parseAbiParameters("uint256 tokenId"),
         commonPayload,
     );
-
-    console.log({ token, sender, tokenId, baseLayerData, execLayerData });
 
     return {
         token,
         sender,
         tokenId,
-        baseLayerData: "0x",
-        execLayerData: "0x",
     };
 };
 
@@ -126,7 +122,7 @@ export const parseERC1155SingleDeposit = (
     const sender = getAddress(slice(payload, 20, 40)); // 20 bytes for address
 
     const commonPayload = slice(payload, 40);
-    const [tokenId, value, baseLayerData, execLayerData] = decodeAbiParameters(
+    const [tokenId, value] = decodeAbiParameters(
         parseAbiParameters("uint256 tokenId, uint256 value"),
         commonPayload,
     );
@@ -136,8 +132,6 @@ export const parseERC1155SingleDeposit = (
         sender,
         tokenId,
         value,
-        baseLayerData: "0x",
-        execLayerData: "0x",
     };
 };
 
@@ -153,14 +147,11 @@ export const parseERC1155BatchDeposit = (
     const sender = getAddress(slice(payload, 20, 40)); // 20 bytes for address
 
     const commonPayload = slice(payload, 40);
-    const [tokenIds, values, baseLayerData, execLayerData] =
-        decodeAbiParameters(
-            parseAbiParameters(
-                "uint256[] tokenIds, uint256[] values, bytes baseLayerData, bytes execLayerData",
-            ),
-            commonPayload,
-        );
-    return { token, sender, tokenIds, values, baseLayerData, execLayerData };
+    const [tokenIds, values] = decodeAbiParameters(
+        parseAbiParameters("uint256[] tokenIds, uint256[] values"),
+        commonPayload,
+    );
+    return { token, sender, tokenIds, values };
 };
 
 export const isEtherDeposit = (data: AdvanceRequestData): boolean =>

@@ -1,11 +1,5 @@
 import { beforeEach, describe, expect, test } from "vitest";
-import {
-    Address,
-    Hex,
-    bytesToHex,
-    encodeAbiParameters,
-    encodePacked,
-} from "viem";
+import { Address, Hex, bytesToHex, encodePacked } from "viem";
 
 import {
     createWallet,
@@ -283,8 +277,6 @@ describe("Wallet", () => {
         );
         expect(result.tokenId).toEqual(123456n);
         expect(result.value).toEqual(1n);
-        expect(result.baseLayerData).toEqual("0x");
-        expect(result.execLayerData).toEqual("0x");
     });
 
     test("parseERC1155BatchDeposit", async () => {
@@ -300,7 +292,5 @@ describe("Wallet", () => {
         expect(result.tokenIds).toEqual([3n, 4n]);
         expect(result.values.length).toEqual(2);
         expect(result.values).toEqual([5n, 7n]);
-        expect(result.baseLayerData).toEqual("0x");
-        expect(result.execLayerData).toEqual("0x");
     });
 });

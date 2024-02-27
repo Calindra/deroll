@@ -476,9 +476,11 @@ export class WalletAppImpl implements WalletApp {
             nfts.set(tokenId, balance - value);
         }
 
-        const dappAddress = this.dapp
+        const dappAddress = this.dapp;
         if (!dappAddress) {
-            throw new Error(`You need to call the method relayDAppAddress from DAppAddressRelay__factory.`)
+            throw new Error(
+                `You need to call the method relayDAppAddress from DAppAddressRelay__factory.`,
+            );
         }
         let call = encodeFunctionData({
             abi: erc1155Abi,
