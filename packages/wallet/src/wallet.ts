@@ -51,8 +51,14 @@ export class WalletAppImpl implements WalletApp {
     private dapp?: Address;
     private wallets = new Map<string, Wallet>();
 
+    /**
+     * @todo we need this?
+     */
     constructor() {
         this.handler = this.handler.bind(this);
+        this.getDappAddressOrThrow = this.getDappAddressOrThrow.bind(this);
+        this.getWalletOrNew = this.getWalletOrNew.bind(this);
+        this.createDefaultWallet = this.createDefaultWallet.bind(this);
     }
 
     getWalletOrNew(address: string): Wallet {
@@ -119,21 +125,47 @@ export class WalletAppImpl implements WalletApp {
     }
 
     public balanceOfERC1155(
-        addresses: string | Address | (string | Address)[],
+        addresses: string | string[],
         tokenIds: bigint | bigint[],
         owner: string | Address,
     ): bigint | bigint[] {
+        if (!this.isSameType(tokenIds, addresses)) {
+            throw new Error(
+                "addresses and tokenIds must be both arrays or not",
+            );
+        }
+
         if (!Array.isArray(addresses)) {
             addresses = [addresses];
         }
+        if (!Array.isArray(tokenIds)) {
+            tokenIds = [tokenIds];
+        }
+
+        if (addresses.length !== tokenIds.length) {
+            throw new Error("addresses and tokenIds must have the same length");
+        }
+
         const ownerAddress = getAddress(owner);
         const wallet = this.getWalletOrNew(ownerAddress);
-        const addr = addresses.map((address) => getAddress(address));
-        // const item = wallet.erc1155.get(address);
-        /**
-         * @todo implement balanceOfERC1155
-         */
-        throw new Error("Method not implemented.");
+        const balances: bigint[] = [];
+
+        for (let i = 0; i < addresses.length; i++) {
+            const address = isAddress(addresses[i])
+                ? getAddress(addresses[i])
+                : addresses[i];
+            const tokenId = tokenIds[i];
+
+            const collection = wallet.erc1155.get(address as Address);
+            const item = collection?.get(tokenId) ?? 0n;
+            balances.push(item);
+        }
+
+        if (balances.length === 1) {
+            return balances[0];
+        }
+
+        return balances;
     }
 
     public handler: AdvanceRequestHandler = async (data) => {
@@ -342,6 +374,76 @@ export class WalletAppImpl implements WalletApp {
         balance.delete(tokenId);
     }
 
+    transferERC1155(
+        token: Address,
+        from: string,
+        to: string,
+        tokenIds: bigint[],
+        values: bigint[],
+    ): void {
+        if (tokenIds.length !== values.length) {
+            throw new Error("tokenIds and values must have the same length");
+        }
+
+        if (isAddress(from)) {
+            from = getAddress(from);
+        }
+
+        if (isAddress(to)) {
+            to = getAddress(to);
+        }
+
+        const walletFrom = this.getWalletOrNew(from);
+        const walletTo = this.getWalletOrNew(to);
+
+        let nfts = walletFrom.erc1155.get(token);
+        if (!nfts) {
+            nfts = new Map();
+            walletFrom.erc1155.set(token, nfts);
+        }
+
+        // check balance
+        for (let i = 0; i < tokenIds.length; i++) {
+            const tokenId = tokenIds[i];
+            const value = values[i];
+
+            const item = nfts.get(tokenId) ?? 0n;
+
+            if (value < 0n) {
+                throw new Error(
+                    `negative value for tokenId ${tokenId}: ${value}`,
+                );
+            }
+            if (item < value) {
+                throw new Error(
+                    `insufficient balance of user ${from} of token ${tokenId}: ${value.toString()} > ${
+                        item.toString() ?? "0"
+                    }`,
+                );
+            }
+        }
+
+        for (let i = 0; i < tokenIds.length; i++) {
+            const tokenId = tokenIds[i];
+            const value = values[i];
+            const item = nfts.get(tokenId) ?? 0n;
+            nfts.set(tokenId, item - value);
+        }
+
+        let nftsTo = walletTo.erc1155.get(token);
+        if (!nftsTo) {
+            nftsTo = new Map();
+            walletTo.erc1155.set(token, nftsTo);
+        }
+
+        for (let i = 0; i < tokenIds.length; i++) {
+            const tokenId = tokenIds[i];
+            const value = values[i];
+            const item = nftsTo.get(tokenId) ?? 0n;
+            nftsTo.set(tokenId, item + value);
+        }
+    }
+
     withdrawEther(address: Address, amount: bigint): Voucher {
         // normalize address
         address = getAddress(address);
@@ -410,11 +512,18 @@ export class WalletAppImpl implements WalletApp {
             args: [address, amount],
         });
 
-        // create voucher to the IERC20 transfer
+        // create voucher to the ERC-20 transfer
         return {
             destination: token,
             payload: call,
         };
+    }
+
+    isSameType(...args: unknown[]) {
+        const allAreArr = args.every((arg) => Array.isArray(arg));
+        const noneAreArr = args.every((arg) => !Array.isArray(arg));
+
+        return allAreArr || noneAreArr;
     }
 
     withdrawERC721(
@@ -460,21 +569,26 @@ export class WalletAppImpl implements WalletApp {
         };
     }
 
+    getDappAddressOrThrow(): Address {
+        if (!this.dapp) {
+            throw new Error(
+                `You need to call the method relayDAppAddress from DAppAddressRelay__factory.`,
+            );
+        }
+        return this.dapp;
+    }
+
     withdrawERC1155(
         token: Address,
         address: Address,
         tokenIds: bigint | bigint[],
         values: bigint | bigint[],
     ): Voucher {
-        // check arguments consistency
-        // const tokenIdsIsArr = Array.isArray(tokenIds);
-        // const valuesIsArr = Array.isArray(values);
-        //
-        // if ((tokenIdsIsArr || valuesIsArr) && !(tokenIdsIsArr && valuesIsArr)) {
-        //     throw new Error(
-        //         "tokenIds and values must be arrays or bigints both",
-        //     );
-        // }
+        if (!this.isSameType(tokenIds, values)) {
+            throw new Error(
+                "tokenIds and values must be arrays or bigints both",
+            );
+        }
 
         if (!Array.isArray(tokenIds)) {
             tokenIds = [tokenIds];
@@ -532,12 +646,7 @@ export class WalletAppImpl implements WalletApp {
             nfts.set(tokenId, balance - value);
         }
 
-        const dappAddress = this.dapp;
-        if (!dappAddress) {
-            throw new Error(
-                `You need to call the method relayDAppAddress from DAppAddressRelay__factory.`,
-            );
-        }
+        const dappAddress = this.getDappAddressOrThrow();
         let call = encodeFunctionData({
             abi: erc1155Abi,
             functionName: "safeBatchTransferFrom",
