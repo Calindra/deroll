@@ -124,7 +124,7 @@ export class WalletAppImpl implements WalletApp {
     }
 
     public balanceOfERC1155(
-        addresses: string | Address | (string | Address)[],
+        addresses: string | string[],
         tokenIds: bigint | bigint[],
         owner: string | Address,
     ): bigint | bigint[] {
@@ -371,6 +371,76 @@ export class WalletAppImpl implements WalletApp {
         }
         balanceTo.add(tokenId);
         balance.delete(tokenId);
+    }
+
+    transferERC1155(
+        token: Address,
+        from: string,
+        to: string,
+        tokenIds: bigint[],
+        values: bigint[],
+    ): void {
+        if (tokenIds.length !== values.length) {
+            throw new Error("tokenIds and values must have the same length");
+        }
+
+        if (isAddress(from)) {
+            from = getAddress(from);
+        }
+
+        if (isAddress(to)) {
+            to = getAddress(to);
+        }
+
+        const walletFrom = this.getWalletOrNew(from);
+        const walletTo = this.getWalletOrNew(to);
+
+        let nfts = walletFrom.erc1155.get(token);
+        if (!nfts) {
+            nfts = new Map();
+            walletFrom.erc1155.set(token, nfts);
+        }
+
+        // check balance
+        for (let i = 0; i < tokenIds.length; i++) {
+            const tokenId = tokenIds[i];
+            const value = values[i];
+
+            const item = nfts.get(tokenId) ?? 0n;
+
+            if (value < 0n) {
+                throw new Error(
+                    `negative value for tokenId ${tokenId}: ${value}`,
+                );
+            }
+            if (item < value) {
+                throw new Error(
+                    `insufficient balance of user ${from} of token ${tokenId}: ${value.toString()} > ${
+                        item.toString() ?? "0"
+                    }`,
+                );
+            }
+        }
+
+        for (let i = 0; i < tokenIds.length; i++) {
+            const tokenId = tokenIds[i];
+            const value = values[i];
+            const item = nfts.get(tokenId) ?? 0n;
+            nfts.set(tokenId, item - value);
+        }
+
+        let nftsTo = walletTo.erc1155.get(token);
+        if (!nftsTo) {
+            nftsTo = new Map();
+            walletTo.erc1155.set(token, nftsTo);
+        }
+
+        for (let i = 0; i < tokenIds.length; i++) {
+            const tokenId = tokenIds[i];
+            const value = values[i];
+            const item = nftsTo.get(tokenId) ?? 0n;
+            nftsTo.set(tokenId, item + value);
+        }
     }
 
     withdrawEther(address: Address, amount: bigint): Voucher {
