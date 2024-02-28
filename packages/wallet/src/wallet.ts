@@ -62,6 +62,9 @@ export class WalletAppImpl implements WalletApp {
     }
 
     getWalletOrNew(address: string): Wallet {
+        if (isAddress(address)) {
+            address = getAddress(address);
+        }
         const wallet = this.wallets.get(address);
 
         if (wallet) {
