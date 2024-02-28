@@ -6,6 +6,7 @@ import {
     dAppAddressRelayAddress,
     erc20Abi,
     erc1155Abi,
+    erc721Abi,
 } from "./rollups";
 import {
     isERC20Deposit,
@@ -410,6 +411,49 @@ export class WalletAppImpl implements WalletApp {
         });
 
         // create voucher to the IERC20 transfer
+        return {
+            destination: token,
+            payload: call,
+        };
+    }
+
+    withdrawERC721(
+        token: Address,
+        address: Address,
+        tokenId: bigint,
+    ): Voucher {
+        token = getAddress(token);
+        address = getAddress(address);
+
+        const wallet = this.wallets.get(address);
+
+        if (!wallet) {
+            throw new Error(`wallet of user ${address} is undefined`);
+        }
+
+        const collection = wallet?.erc721.get(token);
+        if (!collection) {
+            throw new Error(
+                `insufficient balance of user ${address} of token ${token}`,
+            );
+        }
+        if (!collection.has(tokenId)) {
+            throw new Error(
+                `insufficient balance of user ${address} of token ${token} id ${tokenId}`,
+            );
+        }
+        const dappAddress = this.dapp;
+        if (!dappAddress) {
+            throw new Error(
+                `You need to call the method relayDAppAddress from DAppAddressRelay__factory.`,
+            );
+        }
+        collection.delete(tokenId)
+        let call = encodeFunctionData({
+            abi: erc721Abi,
+            functionName: "safeTransferFrom",
+            args: [dappAddress, address, tokenId],
+        });
         return {
             destination: token,
             payload: call,
