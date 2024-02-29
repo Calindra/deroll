@@ -1,4 +1,10 @@
-import { isERC1155SingleDeposit, parseERC1155SingleDeposit } from ".";
+import {
+    isERC1155BatchDeposit,
+    isERC1155SingleDeposit,
+    isERC20Deposit,
+    isERC721Deposit,
+    parseERC1155SingleDeposit,
+} from ".";
 import { inspect } from "node:util";
 import { WalletAppImpl } from "./wallet";
 import { AdvanceRequestData, RequestMetadata } from "@deroll/app";
@@ -41,28 +47,47 @@ const isValidAdvanceRequestData = (
 };
 
 export interface ERCHandler {
-    isDeposit(data: unknown): boolean;
+    isDeposit(data: AdvanceRequestData): boolean;
 
     /**
      * Does not reject
      * @param data
      */
-    handle(data: unknown, wallets: WalletAppImpl): void;
+    handle(data: AdvanceRequestData, wallets: WalletAppImpl): void;
+}
+
+export class ERC20 implements ERCHandler {
+    isDeposit(data: AdvanceRequestData): boolean {
+        return isERC20Deposit(data);
+    }
+    handle(data: AdvanceRequestData, wallets: WalletAppImpl): void {
+        throw new Error("Method not implemented.");
+    }
+}
+export class ERC721 implements ERCHandler {
+    isDeposit(data: AdvanceRequestData): boolean {
+        return isERC721Deposit(data);
+    }
+    handle(data: AdvanceRequestData, wallets: WalletAppImpl): void {
+        throw new Error("Method not implemented.");
+    }
+}
+export class ERC1155Batch implements ERCHandler {
+    isDeposit(data: AdvanceRequestData): boolean {
+        return isERC1155BatchDeposit(data);
+    }
+    handle(data: AdvanceRequestData, wallets: WalletAppImpl): void {
+        throw new Error("Method not implemented.");
+    }
 }
 
 export class ERC1155Single implements ERCHandler {
-    isDeposit(data: unknown): boolean {
-        if (!isValidAdvanceRequestData(data)) {
-            return false;
-        }
+    isDeposit(data: AdvanceRequestData): boolean {
         return isERC1155SingleDeposit(data);
     }
 
-    handle(data: unknown, wallets: WalletAppImpl): void {
+    handle(data: AdvanceRequestData, wallets: WalletAppImpl): void {
         console.log("ERC-1155 single");
-        if (!isValidAdvanceRequestData(data)) {
-            throw new Error("Invalid data");
-        }
         const { tokenId, sender, token, value } = parseERC1155SingleDeposit(
             data.payload,
         );
@@ -76,5 +101,37 @@ export class ERC1155Single implements ERCHandler {
         const tokenBalance = collection.get(tokenId) ?? 0n;
         collection.set(tokenId, tokenBalance + value);
         console.log("Wallet", inspect(wallet));
+    }
+}
+
+export class ERCX {
+    private static instance: ERCX;
+    private readonly handlers: ERCHandler[] = [
+        new ERC20(),
+        new ERC721(),
+        new ERC1155Batch(),
+        new ERC1155Single(),
+    ];
+
+    private constructor() {}
+    private getInstance(): ERCX {
+        if (!ERCX.instance) {
+            ERCX.instance = new ERCX();
+        }
+        return ERCX.instance;
+    }
+
+    /**
+     * Find the deposit handler for the given data
+     * @param data payload with metadata
+     * @returns
+     * @throws if data is invalid
+     */
+    findDeposit(data: unknown): ERCHandler | undefined {
+        if (!isValidAdvanceRequestData(data)) {
+            throw new Error("Invalid data");
+        }
+
+        return this.handlers.find((handler) => handler.isDeposit(data));
     }
 }
