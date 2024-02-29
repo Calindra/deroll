@@ -526,11 +526,7 @@ export class WalletAppImpl implements WalletApp {
         return allAreArr || noneAreArr;
     }
 
-    withdrawERC721(
-        token: Address,
-        address: Address,
-        tokenId: bigint,
-    ): Voucher {
+    withdrawERC721(token: Address, address: Address, tokenId: bigint): Voucher {
         token = getAddress(token);
         address = getAddress(address);
 
@@ -551,14 +547,10 @@ export class WalletAppImpl implements WalletApp {
                 `insufficient balance of user ${address} of token ${token} id ${tokenId}`,
             );
         }
-        const dappAddress = this.dapp;
-        if (!dappAddress) {
-            throw new Error(
-                `You need to call the method relayDAppAddress from DAppAddressRelay__factory.`,
-            );
-        }
-        collection.delete(tokenId)
-        let call = encodeFunctionData({
+        const dappAddress = this.getDappAddressOrThrow();
+
+        collection.delete(tokenId);
+        const call = encodeFunctionData({
             abi: erc721Abi,
             functionName: "safeTransferFrom",
             args: [dappAddress, address, tokenId],
