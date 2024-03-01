@@ -391,7 +391,21 @@ describe("Wallet", () => {
     });
 
     describe("should be able to transfer", () => {
-        test.todo("transfer ETH without balance", () => {});
+        test("transfer ETH without balance", async () => {
+            const wallet = createWallet();
+            const from = generateAddress();
+            const sender = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
+            const amount = 1n;
+            const call = wallet.transferEther.bind(
+                wallet,
+                from,
+                sender,
+                amount,
+            );
+
+            expect(call).toThrowError();
+            expect(wallet.balanceOf(sender)).toEqual(0n);
+        });
 
         test("transfer ETH", async () => {
             const wallet = createWallet();
@@ -415,13 +429,79 @@ describe("Wallet", () => {
             expect(response).toEqual("accept");
         });
 
-        test.todo("transfer ERC20 without balance", () => {});
+        test("transfer ERC20 without balance", () => {
+            const wallet = createWallet();
+            const from = generateAddress();
+            const to = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
 
-        test.todo("transfer ERC20", () => {});
-        test.todo("transfer ERC721 without balance", () => {});
+            const token = generateAddress();
+            const amount = 123456n;
+
+            const call = wallet.transferERC20.bind(
+                wallet,
+                token,
+                from,
+                to,
+                amount,
+            );
+            expect(call).toThrowError();
+            expect(wallet.balanceOf(token, to)).toEqual(0n);
+        });
+
+        test("transfer ERC20", async () => {
+            const wallet = createWallet();
+            const from = generateAddress();
+            const to = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
+            const token = generateAddress();
+            const amount = 123456n;
+
+            /**
+             * Deposit
+             */
+            const metadata = {
+                msg_sender: erc20PortalAddress,
+                block_number: 0,
+                epoch_index: 0,
+                input_index: 0,
+                timestamp: 0,
+            };
+
+            const payload = encodePacked(
+                ["bool", "address", "address", "uint256", "bytes", "bytes"],
+                [true, token, from, amount, "0x", "0x"],
+            );
+
+            const handler = () => wallet.handler({ metadata, payload });
+            expect(handler()).resolves.toEqual("accept");
+            expect(wallet.balanceOf(token, from)).toEqual(amount);
+
+            /**
+             * Transfer
+             */
+            const call = () => wallet.transferERC20(token, from, to, amount);
+            expect(call).not.toThrowError();
+            expect(wallet.balanceOf(token, from)).toEqual(0n);
+            expect(wallet.balanceOf(token, to)).toEqual(amount);
+        });
+
+        test("transfer ERC721 without balance", async () => {
+            const from = generateAddress();
+            const to = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
+            const wallet = createWallet();
+            const tokenId = 123456n;
+            const token = generateAddress();
+
+            /**
+             * Transfer
+             */
+            const call = () => wallet.transferERC721(token, from, to, tokenId);
+            expect(call).toThrowError();
+            expect(wallet.balanceOf(token, from)).toEqual(0n);
+            expect(wallet.balanceOf(token, to)).toEqual(0n);
+        });
 
         test("transfer ERC721", async () => {
-            const from = generateAddress();
+            const token = generateAddress();
             const to = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
 
             const wallet = createWallet();
@@ -436,11 +516,12 @@ describe("Wallet", () => {
 
             const payload = encodePacked(
                 ["address", "address", "uint256", "bytes", "bytes"],
-                [from, to, tokenId, "0x", "0x"],
+                [token, to, tokenId, "0x", "0x"],
             );
 
-            const response = await wallet.handler({ metadata, payload });
-            expect(response).toEqual("accept");
+            const handler = () => wallet.handler({ metadata, payload });
+            expect(handler()).resolves.toEqual("accept");
+            expect(wallet.balanceOfERC721(token, to)).toEqual(1n);
         });
         test.todo("transfer ERC1155 without balance", () => {});
         test.todo("transfer ERC1155", () => {});
