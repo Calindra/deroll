@@ -33,6 +33,11 @@ export interface WalletApp {
     balanceOf(address: string): bigint;
     balanceOf(token: Address, address: string): bigint;
     balanceOfERC721(token: Address, owner: string): bigint;
+    balanceOfERC1155(
+        addresses: string | string[],
+        tokenIds: bigint | bigint[],
+        owner: string | Address,
+    ): bigint | bigint[];
     handler: AdvanceRequestHandler;
     transferEther(from: string, to: string, amount: bigint): void;
     transferERC20(

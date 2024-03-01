@@ -351,23 +351,25 @@ describe("Wallet", () => {
             expect(wallet.balanceOfERC721(token, sender)).toEqual(1n);
         });
 
-        test("deposit ERC1155", async () => {
+        test.todo("deposit ERC1155", async () => {
             const wallet = createWallet();
             const token = generateAddress();
             const sender = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
-            const transfers = new Map([
+            const transfers = new Map<bigint, bigint>([
                 [123456n, 1n],
                 [123457n, 2n],
                 [123458n, 3n],
             ]);
 
             const metadata = {
-                msg_sender: parseERC1155BatchDeposit,
+                msg_sender: erc1155BatchPortalAddress,
                 block_number: 0,
                 epoch_index: 0,
                 input_index: 0,
                 timestamp: 0,
             };
+            const tokenIdsBig = [...transfers.keys()];
+            const values = [...transfers.values()];
 
             const payload = encodePacked(
                 [
@@ -378,14 +380,19 @@ describe("Wallet", () => {
                     "bytes",
                     "bytes",
                 ],
-                [
-                    token,
-                    sender,
-                    [...transfers.keys()],
-                    [...transfers.values()],
-                    "0x",
-                    "0x",
-                ],
+                [token, sender, tokenIdsBig, values, "0x", "0x"],
+            );
+
+            /** @todo */
+            const tokenIds = tokenIdsBig.map((addr) => {
+                const hex = "0x" + addr.toString(16).padStart(40, "0");
+                return getAddress(hex);
+            });
+
+            const handler = () => wallet.handler({ metadata, payload });
+            expect(handler()).resolves.toEqual("accept");
+            expect(wallet.balanceOfERC1155(tokenIds, values, sender)).toEqual(
+                1n,
             );
         });
     });
