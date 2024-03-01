@@ -1,5 +1,9 @@
 module.exports = {
-    extends: ["eslint:recommended", "turbo", "prettier"],
+    extends: [
+        "plugin:@typescript-eslint/recommended-type-checked",
+        "turbo",
+        "prettier",
+    ],
     parser: "@typescript-eslint/parser",
     plugins: ["@typescript-eslint"],
     parserOptions: {
