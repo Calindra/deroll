@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "vitest";
-import { Address, Hex, bytesToHex, encodePacked } from "viem";
+import { Address, Hex, bytesToHex, encodePacked, getAddress } from "viem";
 
 import {
     createWallet,
@@ -11,6 +11,8 @@ import {
     parseERC1155BatchDeposit,
     parseERC1155SingleDeposit,
     parseEtherDeposit,
+    parseERC20Deposit,
+    parseERC721Deposit,
 } from "../src";
 import {
     erc20PortalAddress,
@@ -24,7 +26,8 @@ import { getRandomValues } from "node:crypto";
 function generateAddress(): Address {
     const address = new Uint8Array(20);
     const random = getRandomValues(address);
-    return bytesToHex(random);
+    const hex = bytesToHex(random);
+    return getAddress(hex);
 }
 
 describe("Wallet", () => {
@@ -172,8 +175,38 @@ describe("Wallet", () => {
             });
         });
 
-        test.todo("parseERC20Deposit", () => {});
-        test.todo("parseERC721Deposit", () => {});
+        test("parseERC20Deposit", () => {
+            const token = generateAddress();
+            const sender = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
+            const amount = 123456n;
+            const success = true;
+            const payload = encodePacked(
+                ["bool", "address", "address", "uint256", "bytes", "bytes"],
+                [true, token, sender, amount, "0x", "0x"],
+            );
+            const deposit = parseERC20Deposit(payload);
+            expect(deposit).toEqual({
+                success,
+                token,
+                sender,
+                amount,
+            });
+        });
+        test("parseERC721Deposit", () => {
+            const token = generateAddress();
+            const sender = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
+            const tokenId = 123456n;
+            const payload = encodePacked(
+                ["address", "address", "uint256", "bytes", "bytes"],
+                [token, sender, tokenId, "0x", "0x"],
+            );
+            const deposit = parseERC721Deposit(payload);
+            expect(deposit).toEqual({
+                token,
+                sender,
+                tokenId,
+            });
+        });
 
         test("parseERC1155SingleDeposit", async () => {
             const address = "0xf252ee8851e87c530de36e798a0e2f28ce100477";
