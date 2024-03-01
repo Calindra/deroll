@@ -41,6 +41,12 @@ export interface WalletApp {
         to: string,
         amount: bigint,
     ): void;
+    transferERC721(
+        token: Address,
+        from: string,
+        to: string,
+        tokenId: bigint,
+    ): void;
     withdrawEther(address: Address, amount: bigint): Voucher;
     withdrawERC20(token: Address, address: Address, amount: bigint): Voucher;
     createDefaultWallet(): Wallet;
