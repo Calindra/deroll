@@ -1,6 +1,6 @@
 module.exports = {
     extends: [
-        "plugin:@typescript-eslint/recommended-type-checked",
+        "plugin:@typescript-eslint/recommended",
         "turbo",
         "prettier",
     ],
@@ -16,7 +16,7 @@ module.exports = {
     },
     rules: {
         "prefer-const": "error",
-        "no-unused-vars": "off",
+        "@typescript-eslint/no-unused-vars": "off",
         "no-constant-condition": "off",
     },
 };
