@@ -531,7 +531,40 @@ describe("Wallet", () => {
             expect(wallet.balanceOfERC721(token, to)).toEqual(1n);
         });
         test.todo("transfer ERC1155 without balance", () => {});
-        test.todo("transfer ERC1155", () => {});
+        test.todo("transfer ERC1155", () => {
+            const token = "0xc961145a54C96E3aE9bAA048c4F4D6b04C13916b";
+            const from = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
+            const to = "0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E";
+            const wallet = createWallet();
+
+            // Deposit
+            const metadata = {
+                msg_sender: erc1155SinglePortalAddress,
+                block_number: 0,
+                epoch_index: 0,
+                input_index: 0,
+                timestamp: 0,
+            };
+
+            const payload = encodePacked(
+                ["address", "address", "uint256", "uint256", "bytes", "bytes"],
+                [token, from, 123456n, 1n, "0x", "0x"],
+            );
+
+            const handler = () => wallet.handler({ metadata, payload });
+            expect(handler()).resolves.toEqual("accept");
+            expect(wallet.balanceOfERC1155(token, 123456n, from)).toEqual(1n);
+
+            // Transfer
+            const call = () =>
+                wallet.transferERC1155(token, from, to, [123456n], [1n]);
+            expect(call).not.toThrowError();
+            expect(wallet.balanceOfERC1155(token, 123456n, from)).toEqual(0n);
+            /**
+             * Todo: Check if the balance is correct
+             * */
+            expect(wallet.balanceOfERC1155(token, 123456n, to)).toEqual(1n);
+        });
     });
 
     describe("should be able to withdraw", () => {
