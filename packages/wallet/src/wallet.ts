@@ -206,7 +206,6 @@ export class WalletAppImpl implements WalletApp {
                 const { success, token, sender, amount } = parseERC20Deposit(
                     data.payload,
                 );
-                console.log("ERC-20 data", { success, token, sender, amount });
                 if (success) {
                     const wallet = this.getWalletOrNew(sender);
 

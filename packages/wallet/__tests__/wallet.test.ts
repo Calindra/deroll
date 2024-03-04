@@ -238,15 +238,23 @@ describe("Wallet", () => {
             expect(result.value).toEqual(1n);
         });
 
-        test.todo("parseERC1155BatchDeposit", async () => {
-            // indexs dont show in the payload with encodePacked
+        test("parseERC1155BatchDeposit", async () => {
+            const tokens = new Map<bigint, bigint>([
+                [3n, 5n],
+                [4n, 7n],
+            ]);
+
+            const tokensBytes = encodeAbiParameters(
+                parseAbiParameters("uint256[] tokenIds, uint256[] values"),
+                [[...tokens.keys()], [...tokens.values()]],
+            );
+
             const payload = encodePacked(
-                ["address", "address", "uint256[]", "uint256[]"],
+                ["address", "address", "bytes"],
                 [
                     "0x3aa5ebb10dc797cac828524e59a333d0a371443c",
                     "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
-                    [3n, 4n],
-                    [5n, 7n],
+                    tokensBytes,
                 ],
             );
 
@@ -354,7 +362,7 @@ describe("Wallet", () => {
             expect(wallet.balanceOfERC721(token, sender)).toEqual(1n);
         });
 
-        test.todo("deposit ERC1155", async () => {
+        test("deposit ERC1155", async () => {
             const wallet = createWallet();
             const token = "0xc961145a54C96E3aE9bAA048c4F4D6b04C13916b";
             const sender = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
@@ -384,11 +392,20 @@ describe("Wallet", () => {
                 timestamp: 0,
             };
 
-            const batchPayload = encodePacked(
-                ["address", "address", "uint256[]", "uint256[]"],
-                [token, sender, [123456n, 123457n], [1n, 1n]],
+            const tokensBatch = new Map<bigint, bigint>([
+                [123456n, 1n],
+                [123457n, 1n],
+            ]);
+
+            const tokens = encodeAbiParameters(
+                parseAbiParameters("uint256[] tokenIds, uint256[] values"),
+                [[...tokensBatch.keys()], [...tokensBatch.values()]],
             );
-            console.log({ batchPayload });
+
+            const batchPayload = encodePacked(
+                ["address", "address", "bytes"],
+                [token, sender, tokens],
+            );
 
             const batchHandler = () =>
                 wallet.handler({
