@@ -190,104 +190,112 @@ export class WalletAppImpl implements WalletApp {
     }
 
     public handler: AdvanceRequestHandler = async (data) => {
-        // Ether Deposit
-        if (isEtherDeposit(data)) {
-            const { sender, value } = parseEtherDeposit(data.payload);
-            const wallet = this.getWalletOrNew(sender);
-            wallet.ether += value;
-            this.wallets.set(sender, wallet);
-            return "accept";
-        }
-        console.log("Wallet handler...", inspect(data, { depth: null }));
+        try {
+            // Ether Deposit
+            if (isEtherDeposit(data)) {
+                const { sender, value } = parseEtherDeposit(data.payload);
+                const wallet = this.getWalletOrNew(sender);
+                wallet.ether += value;
+                this.wallets.set(sender, wallet);
+                return "accept";
+            }
+            console.log("Wallet handler...", inspect(data, { depth: null }));
 
-        // ERC20 Deposit
-        if (isERC20Deposit(data)) {
-            const { success, token, sender, amount } = parseERC20Deposit(
-                data.payload,
-            );
-            console.log("ERC-20 data", { success, token, sender, amount });
-            if (success) {
+            // ERC20 Deposit
+            if (isERC20Deposit(data)) {
+                const { success, token, sender, amount } = parseERC20Deposit(
+                    data.payload,
+                );
+                console.log("ERC-20 data", { success, token, sender, amount });
+                if (success) {
+                    const wallet = this.getWalletOrNew(sender);
+
+                    const balance = wallet.erc20.get(token);
+
+                    if (balance) {
+                        wallet.erc20.set(token, balance + amount);
+                    } else {
+                        wallet.erc20.set(token, amount);
+                    }
+
+                    this.wallets.set(sender, wallet);
+                }
+                return "accept";
+            }
+
+            // ERC721 Deposit
+            if (isERC721Deposit(data)) {
+                console.log("ERC-721 data");
+                const { token, sender, tokenId } = parseERC721Deposit(
+                    data.payload,
+                );
+
                 const wallet = this.getWalletOrNew(sender);
 
-                const balance = wallet.erc20.get(token);
-
-                if (balance) {
-                    wallet.erc20.set(token, balance + amount);
+                const collection = wallet.erc721.get(token);
+                if (collection) {
+                    collection.add(tokenId);
                 } else {
-                    wallet.erc20.set(token, amount);
+                    const collection = new Set([tokenId]);
+                    wallet.erc721.set(token, collection);
+                }
+                this.wallets.set(sender, wallet);
+                return "accept";
+            }
+
+            // ERC1155 Single Deposit
+            if (isERC1155SingleDeposit(data)) {
+                console.log("ERC-1155 single");
+                const { tokenId, sender, token, value } =
+                    parseERC1155SingleDeposit(data.payload);
+
+                const wallet = this.getWalletOrNew(sender);
+                let collection = wallet.erc1155.get(token);
+                if (!collection) {
+                    collection = new Map();
+                    wallet.erc1155.set(token, collection);
+                }
+                const tokenBalance = collection.get(tokenId) ?? 0n;
+                collection.set(tokenId, tokenBalance + value);
+                this.wallets.set(sender, wallet);
+                return "accept";
+            }
+
+            // ERC1155 Batch Deposit
+            if (isERC1155BatchDeposit(data)) {
+                console.log("ERC-1155 batch");
+                const { token, sender, tokenIds } = parseERC1155BatchDeposit(
+                    data.payload,
+                );
+
+                const wallet = this.getWalletOrNew(sender);
+                let collection = wallet.erc1155.get(token);
+                if (!collection) {
+                    collection = new Map();
+                    wallet.erc1155.set(token, collection);
                 }
 
+                for (let i = 0; i < tokenIds.length; i++) {
+                    const tokenId = tokenIds[i];
+                    const tokenBalance = collection.get(tokenId) ?? 0n;
+                    collection.set(tokenId, tokenBalance + 1n);
+                }
                 this.wallets.set(sender, wallet);
-            }
-            return "accept";
-        }
-
-        // ERC721 Deposit
-        if (isERC721Deposit(data)) {
-            console.log("ERC-721 data");
-            const { token, sender, tokenId } = parseERC721Deposit(data.payload);
-
-            const wallet = this.getWalletOrNew(sender);
-
-            const collection = wallet.erc721.get(token);
-            if (collection) {
-                collection.add(tokenId);
-            } else {
-                const collection = new Set([tokenId]);
-                wallet.erc721.set(token, collection);
-            }
-            this.wallets.set(sender, wallet);
-            return "accept";
-        }
-
-        // ERC1155 Single Deposit
-        if (isERC1155SingleDeposit(data)) {
-            console.log("ERC-1155 single");
-            const { tokenId, sender, token, value } = parseERC1155SingleDeposit(
-                data.payload,
-            );
-
-            const wallet = this.getWalletOrNew(sender);
-            let collection = wallet.erc1155.get(token);
-            if (!collection) {
-                collection = new Map();
-                wallet.erc1155.set(token, collection);
-            }
-            const tokenBalance = collection.get(tokenId) ?? 0n;
-            collection.set(tokenId, tokenBalance + value);
-            this.wallets.set(sender, wallet);
-            return "accept";
-        }
-
-        // ERC1155 Batch Deposit
-        if (isERC1155BatchDeposit(data)) {
-            console.log("ERC-1155 batch");
-            const { token, sender, tokenIds } = parseERC1155BatchDeposit(
-                data.payload,
-            );
-
-            const wallet = this.getWalletOrNew(sender);
-            let collection = wallet.erc1155.get(token);
-            if (!collection) {
-                collection = new Map();
-                wallet.erc1155.set(token, collection);
+                return "accept";
             }
 
-            for (let i = 0; i < tokenIds.length; i++) {
-                const tokenId = tokenIds[i];
-                const tokenBalance = collection.get(tokenId) ?? 0n;
-                collection.set(tokenId, tokenBalance + 1n);
+            // Relay Address
+            if (
+                getAddress(data.metadata.msg_sender) === dAppAddressRelayAddress
+            ) {
+                console.log("dAppAddressRelayAddress");
+                this.dapp = getAddress(data.payload);
+                return "accept";
             }
-            this.wallets.set(sender, wallet);
-            return "accept";
+        } catch (e) {
+            console.log("Error", e);
         }
 
-        // Relay Address
-        if (getAddress(data.metadata.msg_sender) === dAppAddressRelayAddress) {
-            console.log("dAppAddressRelayAddress");
-            this.dapp = getAddress(data.payload);
-            return "accept";
-        }
         console.log("Wallet handler reject");
         // Otherwise, reject
         return "reject";

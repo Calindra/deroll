@@ -1,5 +1,13 @@
 import { beforeEach, describe, expect, test } from "vitest";
-import { Address, Hex, bytesToHex, encodePacked, getAddress } from "viem";
+import {
+    Address,
+    Hex,
+    bytesToHex,
+    encodeAbiParameters,
+    encodePacked,
+    getAddress,
+    parseAbiParameters,
+} from "viem";
 
 import {
     createWallet,
@@ -214,8 +222,6 @@ describe("Wallet", () => {
             const tokenId = 123456n;
             const value = 1n;
 
-            // const payload =
-            // "0xf252ee8851e87c530de36e798a0e2f28ce10047718930e8a66a1dbe21d00581216789aab7460afd0000000000000000000000000000000000000000000000000000000000001e240000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
             const payload = encodePacked(
                 ["address", "address", "uint256", "uint256", "bytes", "bytes"],
                 [address, sender, tokenId, value, "0x", "0x"],
@@ -232,23 +238,20 @@ describe("Wallet", () => {
             expect(result.value).toEqual(1n);
         });
 
-        test("parseERC1155BatchDeposit", async () => {
-            const payload = `0x3aa5ebb10dc797cac828524e59a333d0a371443cf39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000016000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000005000000000000000000000000000000000000000000000000000000000000000700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000`;
-            // const payload = `0x3aa5ebb10dc797cac828524e59a333d0a371443c <- address
-            //                    f39fd6e51aad88f6f4ce6ab8827279cfffb92266 <- address
-            // 0000000000000000000000000000000000000000000000000000000000000080 <- offset
-            // 00000000000000000000000000000000000000000000000000000000000000e0 <- offset
-            // 0000000000000000000000000000000000000000000000000000000000000140 <- offset
-            // 0000000000000000000000000000000000000000000000000000000000000160 <- offset
-            // 0000000000000000000000000000000000000000000000000000000000000002 <- array tokenIds length
-            // 0000000000000000000000000000000000000000000000000000000000000003    <- tokenIds[0] = 3
-            // 0000000000000000000000000000000000000000000000000000000000000004    <- tokenIds[1] = 4
-            // 0000000000000000000000000000000000000000000000000000000000000002 <- array values length
-            // 0000000000000000000000000000000000000000000000000000000000000005    <- values[0] = 5
-            // 0000000000000000000000000000000000000000000000000000000000000007    <- values[0] = 7
-            // 0000000000000000000000000000000000000000000000000000000000000000 <- bytes len
-            // 0000000000000000000000000000000000000000000000000000000000000000 <- bytes len
-            // `;
+        test.todo("parseERC1155BatchDeposit", async () => {
+            // indexs dont show in the payload with encodePacked
+            const payload = encodePacked(
+                ["address", "address", "uint256[]", "uint256[]"],
+                [
+                    "0x3aa5ebb10dc797cac828524e59a333d0a371443c",
+                    "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+                    [3n, 4n],
+                    [5n, 7n],
+                ],
+            );
+
+            console.log({ payload });
+
             const result = parseERC1155BatchDeposit(payload);
             expect(result.token.toLowerCase()).toEqual(
                 "0x3aa5ebb10dc797cac828524e59a333d0a371443c",
@@ -353,47 +356,47 @@ describe("Wallet", () => {
 
         test.todo("deposit ERC1155", async () => {
             const wallet = createWallet();
-            const token = generateAddress();
+            const token = "0xc961145a54C96E3aE9bAA048c4F4D6b04C13916b";
             const sender = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
-            const transfers = new Map<bigint, bigint>([
-                [123456n, 1n],
-                [123457n, 2n],
-                [123458n, 3n],
-            ]);
 
             const metadata = {
+                msg_sender: erc1155SinglePortalAddress,
+                block_number: 0,
+                epoch_index: 0,
+                input_index: 0,
+                timestamp: 0,
+            };
+
+            const payload = encodePacked(
+                ["address", "address", "uint256", "uint256", "bytes", "bytes"],
+                [token, sender, 123456n, 1n, "0x", "0x"],
+            );
+
+            const handler = () => wallet.handler({ metadata, payload });
+            expect(handler()).resolves.toEqual("accept");
+            expect(wallet.balanceOfERC1155(token, 123456n, sender)).toEqual(1n);
+
+            const metadataBatch = {
                 msg_sender: erc1155BatchPortalAddress,
                 block_number: 0,
                 epoch_index: 0,
                 input_index: 0,
                 timestamp: 0,
             };
-            const tokenIdsBig = [...transfers.keys()];
-            const values = [...transfers.values()];
 
-            const payload = encodePacked(
-                [
-                    "address",
-                    "address",
-                    "uint256[]",
-                    "uint256[]",
-                    "bytes",
-                    "bytes",
-                ],
-                [token, sender, tokenIdsBig, values, "0x", "0x"],
+            const batchPayload = encodePacked(
+                ["address", "address", "uint256[]", "uint256[]"],
+                [token, sender, [123456n, 123457n], [1n, 1n]],
             );
+            console.log({ batchPayload });
 
-            /** @todo */
-            const tokenIds = tokenIdsBig.map((addr) => {
-                const hex = "0x" + addr.toString(16).padStart(40, "0");
-                return getAddress(hex);
-            });
-
-            const handler = () => wallet.handler({ metadata, payload });
-            expect(handler()).resolves.toEqual("accept");
-            expect(wallet.balanceOfERC1155(tokenIds, values, sender)).toEqual(
-                1n,
-            );
+            const batchHandler = () =>
+                wallet.handler({
+                    metadata: metadataBatch,
+                    payload: batchPayload,
+                });
+            expect(batchHandler()).resolves.toEqual("accept");
+            expect(wallet.balanceOfERC1155(token, 123456n, sender)).toEqual(2n);
         });
     });
 

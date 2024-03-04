@@ -146,6 +146,7 @@ export const parseERC1155BatchDeposit = (
     const sender = getAddress(slice(payload, 20, 40)); // 20 bytes for address
 
     const commonPayload = slice(payload, 40);
+
     const [tokenIds, values] = decodeAbiParameters(
         parseAbiParameters("uint256[] tokenIds, uint256[] values"),
         commonPayload,
