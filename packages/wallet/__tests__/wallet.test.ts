@@ -4,7 +4,9 @@ import {
     Hex,
     bytesToHex,
     encodeAbiParameters,
+    encodeFunctionData,
     encodePacked,
+    erc20Abi,
     getAddress,
     parseAbiParameters,
 } from "viem";
@@ -607,7 +609,40 @@ describe("Wallet", () => {
 
         test.todo("withdraw ETH", () => {});
 
-        test.todo("withdraw ERC20", () => {});
+        test.todo("withdraw ERC20", () => {
+            const wallet = createWallet();
+            const token = generateAddress();
+            const address = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
+            const amount = 123456n;
+
+            // Deposit
+            const metadata = {
+                msg_sender: erc20PortalAddress,
+                block_number: 0,
+                epoch_index: 0,
+                input_index: 0,
+                timestamp: 0,
+            };
+
+            const payload = encodePacked(
+                ["bool", "address", "address", "uint256", "bytes", "bytes"],
+                [true, token, address, amount, "0x", "0x"],
+            );
+
+            const handler = () => wallet.handler({ metadata, payload });
+            expect(handler()).resolves.toEqual("accept");
+            expect(wallet.balanceOf(token, address)).toEqual(amount);
+
+            const call = encodeFunctionData({
+                abi: erc20Abi,
+                functionName: "transfer",
+                args: [address, amount],
+            });
+            expect(wallet.withdrawERC20(token, address, amount)).toMatchObject({
+                destination: token,
+                call,
+            });
+        });
 
         test.todo("withdraw ERC20 with no balance", () => {});
     });
