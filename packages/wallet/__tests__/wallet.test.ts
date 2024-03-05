@@ -529,9 +529,12 @@ describe("Wallet", () => {
 
         test("transfer ERC721", async () => {
             const token = generateAddress();
-            const to = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
+            const to = "0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E";
+            const from = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
 
             const wallet = createWallet();
+
+            // Deposit
             const tokenId = 123456n;
             const metadata = {
                 msg_sender: erc721PortalAddress,
@@ -543,15 +546,28 @@ describe("Wallet", () => {
 
             const payload = encodePacked(
                 ["address", "address", "uint256", "bytes", "bytes"],
-                [token, to, tokenId, "0x", "0x"],
+                [token, from, tokenId, "0x", "0x"],
             );
 
             const handler = () => wallet.handler({ metadata, payload });
             expect(handler()).resolves.toEqual("accept");
-            expect(wallet.balanceOfERC721(token, to)).toEqual(1n);
+            expect(wallet.balanceOfERC721(token, from)).toEqual(1n);
+            expect(wallet.balanceOfERC721(token, to)).toEqual(0n);
         });
-        test.todo("transfer ERC1155 without balance", () => {});
-        test.todo("transfer ERC1155", () => {
+        test("transfer ERC1155 without balance", () => {
+            const token = "0xc961145a54C96E3aE9bAA048c4F4D6b04C13916b";
+            const from = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
+            const to = "0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E";
+            const wallet = createWallet();
+
+            // Transfer
+            const call = () =>
+                wallet.transferERC1155(token, from, to, [123456n], [1n]);
+            expect(call).toThrowError();
+            expect(wallet.balanceOfERC1155(token, 123456n, from)).toEqual(0n);
+            expect(wallet.balanceOfERC1155(token, 123456n, to)).toEqual(0n);
+        });
+        test("transfer ERC1155", () => {
             const token = "0xc961145a54C96E3aE9bAA048c4F4D6b04C13916b";
             const from = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
             const to = "0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E";
@@ -580,9 +596,6 @@ describe("Wallet", () => {
                 wallet.transferERC1155(token, from, to, [123456n], [1n]);
             expect(call).not.toThrowError();
             expect(wallet.balanceOfERC1155(token, 123456n, from)).toEqual(0n);
-            /**
-             * Todo: Check if the balance is correct
-             * */
             expect(wallet.balanceOfERC1155(token, 123456n, to)).toEqual(1n);
         });
     });

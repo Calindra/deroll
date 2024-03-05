@@ -70,7 +70,7 @@ export class WalletAppImpl implements WalletApp {
     private wallets = new Map<string, Wallet>();
 
     /**
-     * @todo we need this?
+     * @todo we need *bind* this?
      */
     constructor() {
         this.handler = this.handler.bind(this);
@@ -89,7 +89,10 @@ export class WalletAppImpl implements WalletApp {
             return wallet;
         }
 
-        return this.createDefaultWallet();
+        const newWallet = this.createDefaultWallet();
+        this.wallets.set(address, newWallet);
+
+        return newWallet;
     }
 
     createDefaultWallet(): Wallet {
@@ -400,6 +403,9 @@ export class WalletAppImpl implements WalletApp {
         }
         balanceTo.add(tokenId);
         balance.delete(tokenId);
+
+        this.wallets.set(from, walletFrom);
+        this.wallets.set(to, walletTo);
     }
 
     transferERC1155(
@@ -470,6 +476,9 @@ export class WalletAppImpl implements WalletApp {
             const item = nftsTo.get(tokenId) ?? 0n;
             nftsTo.set(tokenId, item + value);
         }
+
+        this.wallets.set(from, walletFrom);
+        this.wallets.set(to, walletTo);
     }
 
     withdrawEther(address: Address, amount: bigint): Voucher {
