@@ -6,7 +6,6 @@ import {
     encodeAbiParameters,
     encodeFunctionData,
     encodePacked,
-    erc20Abi,
     getAddress,
     parseAbiParameters,
 } from "viem";
@@ -30,6 +29,9 @@ import {
     erc1155SinglePortalAddress,
     erc1155BatchPortalAddress,
     etherPortalAddress,
+    erc20Abi,
+    erc721Abi,
+    dAppAddressRelayAddress,
 } from "../src/rollups";
 import { getRandomValues } from "node:crypto";
 
@@ -260,8 +262,6 @@ describe("Wallet", () => {
                 ],
             );
 
-            console.log({ payload });
-
             const result = parseERC1155BatchDeposit(payload);
             expect(result.token.toLowerCase()).toEqual(
                 "0x3aa5ebb10dc797cac828524e59a333d0a371443c",
@@ -405,8 +405,8 @@ describe("Wallet", () => {
             );
 
             const batchPayload = encodePacked(
-                ["address", "address", "bytes"],
-                [token, sender, tokens],
+                ["address", "address", "bytes", "bytes", "bytes"],
+                [token, sender, tokens, "0x", "0x"],
             );
 
             const batchHandler = () =>
@@ -609,7 +609,7 @@ describe("Wallet", () => {
 
         test.todo("withdraw ETH", () => {});
 
-        test.todo("withdraw ERC20", () => {
+        test("withdraw ERC20", () => {
             const wallet = createWallet();
             const token = generateAddress();
             const address = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
@@ -633,6 +633,7 @@ describe("Wallet", () => {
             expect(handler()).resolves.toEqual("accept");
             expect(wallet.balanceOf(token, address)).toEqual(amount);
 
+            // Withdraw
             const call = encodeFunctionData({
                 abi: erc20Abi,
                 functionName: "transfer",
@@ -640,11 +641,97 @@ describe("Wallet", () => {
             });
             expect(wallet.withdrawERC20(token, address, amount)).toMatchObject({
                 destination: token,
-                call,
+                payload: call,
             });
         });
 
-        test.todo("withdraw ERC20 with no balance", () => {});
+        test("withdraw ERC20 with no balance", () => {
+            const wallet = createWallet();
+            const token = generateAddress();
+            const address = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
+            const amount = 123456n;
+
+            const expectCall = () =>
+                wallet.withdrawERC20(token, address, amount);
+            expect(expectCall).toThrow();
+        });
+
+        test("withdraw ERC721 with no balance", () => {
+            const wallet = createWallet();
+            const token = generateAddress();
+            const address = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
+            const tokenId = 123456n;
+
+            // Relay
+            const relay = {
+                msg_sender: dAppAddressRelayAddress,
+                block_number: 0,
+                epoch_index: 0,
+                input_index: 0,
+                timestamp: 0,
+            };
+            expect(
+                wallet.handler({ metadata: relay, payload: address }),
+            ).resolves.toEqual("accept");
+
+            // Withdraw
+            const handler = () =>
+                wallet.withdrawERC721(token, address, tokenId);
+            expect(handler).toThrowError();
+        });
+        test("withdraw ERC721", () => {
+            const wallet = createWallet();
+            const token = generateAddress();
+            const address = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
+            const tokenId = 123456n;
+
+            // Deposit
+            const metadata = {
+                msg_sender: erc721PortalAddress,
+                block_number: 0,
+                epoch_index: 0,
+                input_index: 0,
+                timestamp: 0,
+            };
+
+            const payload = encodePacked(
+                ["address", "address", "uint256", "bytes", "bytes"],
+                [token, address, tokenId, "0x", "0x"],
+            );
+
+            const handler = () => wallet.handler({ metadata, payload });
+            expect(handler()).resolves.toEqual("accept");
+            expect(wallet.balanceOfERC721(token, address)).toEqual(1n);
+
+            // Relay
+            const relay = {
+                msg_sender: dAppAddressRelayAddress,
+                block_number: 0,
+                epoch_index: 0,
+                input_index: 0,
+                timestamp: 0,
+            };
+            expect(
+                wallet.handler({ metadata: relay, payload: address }),
+            ).resolves.toEqual("accept");
+
+            // Withdraw
+            const payloadVoucher = encodeFunctionData({
+                abi: erc721Abi,
+                functionName: "safeTransferFrom",
+                args: [address, address, tokenId],
+            });
+            const result = wallet.withdrawERC721(token, address, tokenId);
+
+            expect(result.destination).toEqual(token);
+            expect(result.payload).toEqual(payloadVoucher);
+        });
+
+        test.todo("withdraw ERC1155 Single with no balance", () => {});
+        test.todo("withdraw ERC1155 Single", () => {});
+
+        test.todo("withdraw ERC1155 Batch with no balance", () => {});
+        test.todo("withdraw ERC1155 Batch", () => {});
     });
 
     describe("Wallet with Route", () => {
