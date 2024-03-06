@@ -25,6 +25,7 @@ export type TokenContext = Partial<{
     token: bigint;
     owner: string;
     amount: bigint;
+    tokenOrAddress: string;
     recipient: Address;
     payload: string;
     setDapp(address: Address): void;
@@ -37,21 +38,19 @@ export interface TokenOperation {
 
     deposit(context: TokenContext): Promise<void>;
 
-    balanceOf<T extends bigint | bigint[]>(context: TokenContext): Promise<T>;
-    transfer(context: TokenContext): Promise<void>;
-    withdraw(context: TokenContext): Promise<Voucher>;
+    balanceOf<T extends bigint | bigint[]>(context: TokenContext): T;
+    transfer(context: TokenContext): void;
+    withdraw(context: TokenContext): Voucher;
 }
 
 class Ether implements TokenOperation {
-    balanceOf<T extends bigint | bigint[]>(context: TokenContext): Promise<T> {
+    balanceOf<T extends bigint | bigint[]>(context: TokenContext): T {
         throw new Error("Method not implemented.");
     }
     transfer(context: TokenContext): Promise<void> {
         throw new Error("Method not implemented.");
     }
-    withdraw(
-        context: TokenContext,
-    ): Promise<{ destination: `0x${string}`; payload: string }> {
+    withdraw(context: TokenContext): { destination: Address; payload: string } {
         throw new Error("Method not implemented.");
     }
     isDeposit(msgSender: Address): boolean {
@@ -74,15 +73,24 @@ class Ether implements TokenOperation {
 }
 
 class ERC20 implements TokenOperation {
-    balanceOf<T extends bigint | bigint[]>(context: TokenContext): Promise<T> {
-        throw new Error("Method not implemented.");
+    balanceOf<T = bigint>({
+        address,
+        getWallet,
+        tokenOrAddress,
+    }: TokenContext): T {
+        if (!address || !getWallet || !tokenOrAddress)
+            throw new MissingContextArgumentError(["address", "getWallet"]);
+        const addr = getAddress(address);
+
+        const erc20address = getAddress(tokenOrAddress);
+        const wallet = getWallet(addr);
+        const result = wallet.erc20.get(erc20address) ?? 0n;
+        return result as T;
     }
     transfer(context: TokenContext): Promise<void> {
         throw new Error("Method not implemented.");
     }
-    withdraw(
-        context: TokenContext,
-    ): Promise<{ destination: `0x${string}`; payload: string }> {
+    withdraw(context: TokenContext): { destination: Address; payload: string } {
         throw new Error("Method not implemented.");
     }
     deposit(context: TokenContext): Promise<void> {
@@ -93,15 +101,13 @@ class ERC20 implements TokenOperation {
     }
 }
 class ERC721 implements TokenOperation {
-    balanceOf<T extends bigint | bigint[]>(context: TokenContext): Promise<T> {
+    balanceOf<T extends bigint | bigint[]>(context: TokenContext): T {
         throw new Error("Method not implemented.");
     }
     transfer(context: TokenContext): Promise<void> {
         throw new Error("Method not implemented.");
     }
-    withdraw(
-        context: TokenContext,
-    ): Promise<{ destination: `0x${string}`; payload: string }> {
+    withdraw(context: TokenContext): { destination: Address; payload: string } {
         throw new Error("Method not implemented.");
     }
     deposit(context: TokenContext): Promise<void> {
@@ -112,15 +118,13 @@ class ERC721 implements TokenOperation {
     }
 }
 class ERC1155Batch implements TokenOperation {
-    balanceOf<T extends bigint | bigint[]>(context: TokenContext): Promise<T> {
+    balanceOf<T extends bigint | bigint[]>(context: TokenContext): T {
         throw new Error("Method not implemented.");
     }
     transfer(context: TokenContext): Promise<void> {
         throw new Error("Method not implemented.");
     }
-    withdraw(
-        context: TokenContext,
-    ): Promise<{ destination: `0x${string}`; payload: string }> {
+    withdraw(context: TokenContext): { destination: Address; payload: string } {
         throw new Error("Method not implemented.");
     }
     deposit(context: TokenContext): Promise<void> {
@@ -132,15 +136,13 @@ class ERC1155Batch implements TokenOperation {
 }
 
 class ERC1155Single implements TokenOperation {
-    balanceOf<T extends bigint | bigint[]>(context: TokenContext): Promise<T> {
+    balanceOf<T extends bigint | bigint[]>(context: TokenContext): T {
         throw new Error("Method not implemented.");
     }
     transfer(context: TokenContext): Promise<void> {
         throw new Error("Method not implemented.");
     }
-    withdraw(
-        context: TokenContext,
-    ): Promise<{ destination: `0x${string}`; payload: string }> {
+    withdraw(context: TokenContext): { destination: Address; payload: string } {
         throw new Error("Method not implemented.");
     }
     deposit(context: TokenContext): Promise<void> {
@@ -162,22 +164,14 @@ class Relay implements TokenOperation {
         const dapp = getAddress(payload);
         setDapp(dapp);
     }
-    balanceOf<T extends bigint | bigint[]>(): Promise<T> {
-        throw new NotApplicableError("balanceOf");
+    balanceOf<T extends bigint | bigint[]>(): T {
+        throw new NotApplicableError(this.balanceOf.name);
     }
     transfer(): Promise<void> {
-        throw new NotApplicableError("transfer");
+        throw new NotApplicableError(this.transfer.name);
     }
-    withdraw(): Promise<{ destination: `0x${string}`; payload: string }> {
-        throw new NotApplicableError("withdraw");
-    }
-}
-
-class TokenHandlerContext {
-    constructor(public readonly operation: TokenOperation) {}
-
-    async balanceOf<T extends bigint | bigint[]>(context: TokenContext) {
-        return this.operation.balanceOf<T>(context);
+    withdraw(): { destination: Address; payload: string } {
+        throw new NotApplicableError(this.withdraw.name);
     }
 }
 
@@ -211,17 +205,17 @@ export class TokenHandler {
      * @returns
      * @throws if data is invalid
      */
-    public findDeposit(data: unknown): TokenHandlerContext | undefined {
+    public findDepositHandler(data: unknown): TokenOperation | undefined {
         if (!isValidAdvanceRequestData(data)) {
             throw new InvalidPayloadError(data);
         }
-        const msgSender = data.metadata.msg_sender;
+        const msgSender = getAddress(data.metadata.msg_sender);
 
         const handler = this.handlers.find((handler) =>
             handler.isDeposit(msgSender),
         );
         if (handler) {
-            return new TokenHandlerContext(handler);
+            return handler;
         }
     }
 }

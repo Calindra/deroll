@@ -1,5 +1,5 @@
 import { inspect } from "node:util";
-import type { TokenContext } from "./token";
+import type { TokenContext, TokenOperation } from "./token";
 
 export class InvalidPayloadError extends Error {
     constructor(public payload: unknown) {
@@ -15,8 +15,10 @@ export class MissingContextArgumentError<
     }
 }
 
-export class NotApplicableError extends Error {
-    constructor(public operation: string) {
+export class NotApplicableError<
+    T extends string = keyof TokenOperation,
+> extends Error {
+    constructor(public operation: T) {
         super(`Operation not applicable: ${operation}`);
     }
 }
