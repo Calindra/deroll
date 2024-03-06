@@ -21,6 +21,7 @@ import {
     parseERC1155BatchDeposit,
 } from ".";
 import { inspect } from "node:util";
+import { TokenHandler } from "./token";
 
 export type Wallet = {
     ether: bigint;
@@ -70,6 +71,7 @@ export interface WalletApp {
     ): Voucher;
     createDefaultWallet(): Wallet;
     getWalletOrNew(address: string): Wallet;
+    setDapp(address: Address): void;
 }
 
 export class WalletAppImpl implements WalletApp {
@@ -84,6 +86,10 @@ export class WalletAppImpl implements WalletApp {
         this.getDappAddressOrThrow = this.getDappAddressOrThrow.bind(this);
         this.getWalletOrNew = this.getWalletOrNew.bind(this);
         this.createDefaultWallet = this.createDefaultWallet.bind(this);
+    }
+
+    setDapp(address: Address): void {
+        this.dapp = address;
     }
 
     getWalletOrNew(address: string): Wallet {
@@ -203,6 +209,17 @@ export class WalletAppImpl implements WalletApp {
 
     public handler: AdvanceRequestHandler = async (data) => {
         try {
+            // const tokenHandler = TokenHandler.getInstance();
+            // const handler = tokenHandler.findDeposit(data);
+            // if (handler) {
+            //     await handler.operation.deposit({
+            //         setDapp: this.setDapp,
+            //         payload: data.payload,
+            //     });
+            //
+            //     return "accept"
+            // }
+
             // Ether Deposit
             if (isEtherDeposit(data)) {
                 const { sender, value } = parseEtherDeposit(data.payload);
