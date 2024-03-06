@@ -19,19 +19,15 @@ async function main() {
         },
     );
 
-    // app.addAdvanceHandler(wallet.handler);
-    // app.addInspectHandler(router.handler);
-    app.addAdvanceHandler(async () => {
-        console.log('Hi there!!')
-        return "accept"
-    })
-    console.log('Running 4')
+    app.addAdvanceHandler(wallet.handler);
+    app.addInspectHandler(router.handler);
+
     // start app
     await app.start().catch((e) => {
-        console.error(e)
-        process.exit(1)
+        console.error(e);
+        process.exit(1);
     });
-    console.log('exit??')
 }
 
-main()
+main();
+
