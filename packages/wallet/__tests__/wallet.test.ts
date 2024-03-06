@@ -874,7 +874,7 @@ describe("Wallet", () => {
             expect(result.payload).toEqual(payloadVoucher);
         });
 
-        test.todo("withdraw ERC1155 Batch with no balance", () => {
+        test("withdraw ERC1155 Batch with no balance", () => {
             const wallet = createWallet();
             const token = "0xc961145a54C96E3aE9bAA048c4F4D6b04C13916b";
             const address = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
