@@ -397,7 +397,7 @@ describe("Wallet", () => {
             };
 
             const tokensBatch = new Map<bigint, bigint>([
-                [123456n, 1n],
+                [123456n, 2n],
                 [123457n, 1n],
             ]);
 
@@ -417,7 +417,7 @@ describe("Wallet", () => {
                     payload: batchPayload,
                 });
             expect(batchHandler()).resolves.toEqual("accept");
-            expect(wallet.balanceOfERC1155(token, 123456n, sender)).toEqual(2n);
+            expect(wallet.balanceOfERC1155(token, 123456n, sender)).toEqual(3n);
         });
     });
 
@@ -795,7 +795,35 @@ describe("Wallet", () => {
             expect(result.payload).toEqual(payloadVoucher);
         });
 
-        test.todo("withdraw ERC1155 Single with no balance", () => {});
+        test("withdraw ERC1155 Single with no balance", () => {
+            const wallet = createWallet();
+            const token = "0xc961145a54C96E3aE9bAA048c4F4D6b04C13916b";
+            const address = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
+            const dappAddress = "0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E";
+            const tokenId = 123456n;
+
+            // Relay
+            const relay = {
+                msg_sender: dAppAddressRelayAddress,
+                block_number: 0,
+                epoch_index: 0,
+                input_index: 0,
+                timestamp: 0,
+            };
+            expect(
+                wallet.handler({ metadata: relay, payload: dappAddress }),
+            ).resolves.toEqual("accept");
+
+            // Withdraw
+            const payloadVoucher = encodeFunctionData({
+                abi: erc1155Abi,
+                functionName: "safeTransferFrom",
+                args: [dappAddress, address, tokenId, 1n, "0x"],
+            });
+            const call = () =>
+                wallet.withdrawERC1155(token, address, tokenId, 1n);
+            expect(call).toThrowError();
+        });
         test("withdraw ERC1155 Single", () => {
             const wallet = createWallet();
             const token = "0xc961145a54C96E3aE9bAA048c4F4D6b04C13916b";
@@ -846,8 +874,94 @@ describe("Wallet", () => {
             expect(result.payload).toEqual(payloadVoucher);
         });
 
-        test.todo("withdraw ERC1155 Batch with no balance", () => {});
-        test.todo("withdraw ERC1155 Batch", () => {});
+        test.todo("withdraw ERC1155 Batch with no balance", () => {
+            const wallet = createWallet();
+            const token = "0xc961145a54C96E3aE9bAA048c4F4D6b04C13916b";
+            const address = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
+            const dappAddress = "0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E";
+
+            // Relay
+            const relay = {
+                msg_sender: dAppAddressRelayAddress,
+                block_number: 0,
+                epoch_index: 0,
+                input_index: 0,
+                timestamp: 0,
+            };
+            expect(
+                wallet.handler({ metadata: relay, payload: dappAddress }),
+            ).resolves.toEqual("accept");
+
+            // Withdraw
+            const tokenId = 3n;
+            const call = () =>
+                wallet.withdrawERC1155(token, address, tokenId, 1n);
+            expect(call).toThrowError();
+        });
+        test("withdraw ERC1155 Batch", () => {
+            const wallet = createWallet();
+            const token = "0xc961145a54C96E3aE9bAA048c4F4D6b04C13916b";
+            const address = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
+            const dappAddress = "0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E";
+
+            const tokens = new Map<bigint, bigint>([
+                [3n, 5n],
+                [4n, 7n],
+            ]);
+
+            const tokensIds = [...tokens.keys()];
+            const values = [...tokens.values()];
+
+            // Deposit
+            const metadata = {
+                msg_sender: erc1155BatchPortalAddress,
+                block_number: 0,
+                epoch_index: 0,
+                input_index: 0,
+                timestamp: 0,
+            };
+
+            const payloadRest = encodeAbiParameters(
+                parseAbiParameters("int256[] tokenIds, uint256[] values"),
+                [tokensIds, values],
+            );
+
+            const payload = encodePacked(
+                ["address", "address", "bytes"],
+                [token, address, payloadRest],
+            );
+
+            const handler = () => wallet.handler({ metadata, payload });
+            expect(handler()).resolves.toEqual("accept");
+            const addresses = Array(tokens.size).fill(token);
+            expect(
+                wallet.balanceOfERC1155(addresses, tokensIds, address),
+            ).toEqual(values);
+
+            // Relay
+            const relay = {
+                msg_sender: dAppAddressRelayAddress,
+                block_number: 0,
+                epoch_index: 0,
+                input_index: 0,
+                timestamp: 0,
+            };
+            expect(
+                wallet.handler({ metadata: relay, payload: dappAddress }),
+            ).resolves.toEqual("accept");
+
+            // Withdraw
+            const tokenId = 3n;
+            const payloadVoucher = encodeFunctionData({
+                abi: erc1155Abi,
+                functionName: "safeTransferFrom",
+                args: [dappAddress, address, tokenId, 1n, "0x"],
+            });
+            const result = wallet.withdrawERC1155(token, address, tokenId, 1n);
+
+            expect(result.destination).toEqual(token);
+            expect(result.payload).toEqual(payloadVoucher);
+        });
     });
 
     describe("Wallet with Route", () => {

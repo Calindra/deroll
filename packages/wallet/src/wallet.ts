@@ -182,9 +182,11 @@ export class WalletAppImpl implements WalletApp {
         const balances: bigint[] = [];
 
         for (let i = 0; i < addresses.length; i++) {
-            const address = isAddress(addresses[i])
-                ? getAddress(addresses[i])
-                : addresses[i];
+            let address = addresses[i];
+            if (isAddress(address)) {
+                address = getAddress(address);
+            }
+
             const tokenId = tokenIds[i];
 
             const collection = wallet.erc1155.get(address as Address);
@@ -273,9 +275,8 @@ export class WalletAppImpl implements WalletApp {
             // ERC1155 Batch Deposit
             if (isERC1155BatchDeposit(data)) {
                 console.log("ERC-1155 batch");
-                const { token, sender, tokenIds } = parseERC1155BatchDeposit(
-                    data.payload,
-                );
+                const { token, sender, tokenIds, values } =
+                    parseERC1155BatchDeposit(data.payload);
 
                 const wallet = this.getWalletOrNew(sender);
                 let collection = wallet.erc1155.get(token);
@@ -286,10 +287,13 @@ export class WalletAppImpl implements WalletApp {
 
                 for (let i = 0; i < tokenIds.length; i++) {
                     const tokenId = tokenIds[i];
+                    const value = values[i];
+
                     const tokenBalance = collection.get(tokenId) ?? 0n;
-                    collection.set(tokenId, tokenBalance + 1n);
+                    collection.set(tokenId, tokenBalance + value);
                 }
                 this.wallets.set(sender, wallet);
+
                 return "accept";
             }
 
