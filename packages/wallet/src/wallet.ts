@@ -21,7 +21,6 @@ import {
     parseERC1155BatchDeposit,
 } from ".";
 import { inspect } from "node:util";
-import { TokenHandler } from "./token";
 
 export type Wallet = {
     ether: bigint;

@@ -15,8 +15,6 @@ module.exports = {
         node: true,
     },
     rules: {
-        "prefer-const": "error",
-        "@typescript-eslint/no-unused-vars": "off",
-        "no-constant-condition": "off",
+        "prefer-const": "error"
     },
 };

@@ -815,11 +815,6 @@ describe("Wallet", () => {
             ).resolves.toEqual("accept");
 
             // Withdraw
-            const payloadVoucher = encodeFunctionData({
-                abi: erc1155Abi,
-                functionName: "safeTransferFrom",
-                args: [dappAddress, address, tokenId, 1n, "0x"],
-            });
             const call = () =>
                 wallet.withdrawERC1155(token, address, tokenId, 1n);
             expect(call).toThrowError();

@@ -24,6 +24,7 @@ describe("Router", () => {
     });
 
     test("simple route", async () => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         router.add(/ping/, (a, b) => "pong");
         await router.handler({ payload: stringToHex("ping") });
         expect(app.createReport).toHaveBeenCalledWith({
@@ -48,6 +49,7 @@ describe("Router", () => {
     });
 
     test("typed params", async () => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const handler: Handler<{ id: string }> = (a, b) => a.params.id;
         router.add("tests/:id", handler);
         await router.handler({ payload: stringToHex("tests/123") });

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import type { Abi } from "abitype";
 import { defineConfig } from "@wagmi/cli";
 import { erc20Abi, erc721Abi } from "viem";
