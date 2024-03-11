@@ -1,13 +1,19 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import { isValidAdvanceRequestData } from "./util";
 import {
     InvalidPayloadError,
     MissingContextArgumentError,
     NotApplicableError,
 } from "./errors";
-import { getAddress, type Address, isHex } from "viem";
 import {
+    getAddress,
+    type Address,
+    isHex,
+    isAddress,
+    encodeFunctionData,
+    erc20Abi,
+} from "viem";
+import {
+    cartesiDAppAbi,
     dAppAddressRelayAddress,
     erc1155BatchPortalAddress,
     erc1155SinglePortalAddress,
@@ -16,7 +22,7 @@ import {
     etherPortalAddress,
 } from "./rollups";
 import type { Voucher } from "@deroll/app";
-import { parseEtherDeposit } from ".";
+import { parseERC20Deposit, parseEtherDeposit } from ".";
 import type { Wallet } from "./wallet";
 
 export type TokenContext = Partial<{
@@ -24,14 +30,17 @@ export type TokenContext = Partial<{
     addresses: string[];
     tokenIds: bigint[];
     tokenId: bigint;
-    token: bigint;
+    token: Address;
+    from: string;
+    to: string;
     owner: string;
     amount: bigint;
     tokenOrAddress: string;
     recipient: Address;
     payload: string;
+    getDapp(): Address;
     setDapp(address: Address): void;
-    getWallet(address: Address): Wallet;
+    getWallet(address: string): Wallet;
     setWallet(address: Address, wallet: Wallet): void;
 }>;
 
@@ -46,14 +55,104 @@ export interface TokenOperation {
 }
 
 class Ether implements TokenOperation {
-    balanceOf<T extends bigint | bigint[]>(context: TokenContext): T {
-        throw new Error("Method not implemented.");
+    balanceOf<T extends bigint | bigint[]>({
+        tokenOrAddress,
+        getWallet,
+    }: TokenContext): T {
+        if (!tokenOrAddress || !getWallet)
+            throw new MissingContextArgumentError([
+                "tokenOrAddress",
+                "getWallet",
+            ]);
+
+        if (isAddress(tokenOrAddress)) {
+            tokenOrAddress = getAddress(tokenOrAddress);
+        }
+
+        const wallet = getWallet(tokenOrAddress as Address);
+
+        // ether balance
+        return (wallet?.ether ?? 0n) as T;
     }
-    transfer(context: TokenContext): Promise<void> {
-        throw new Error("Method not implemented.");
+    transfer({ getWallet, from, to, amount, setWallet }: TokenContext): void {
+        if (!from || !to || !amount || !getWallet || !setWallet) {
+            throw new MissingContextArgumentError([
+                "from",
+                "to",
+                "amount",
+                "getWallet",
+                "setWallet",
+            ]);
+        }
+
+        const walletFrom = getWallet(from);
+        const walletTo = getWallet(to);
+
+        if (walletFrom.ether < amount) {
+            throw new Error(`insufficient balance of user ${from}`);
+        }
+
+        walletFrom.ether = walletFrom.ether - amount;
+        walletTo.ether = walletTo.ether + amount;
+        setWallet(from as Address, walletFrom);
+        setWallet(to as Address, walletTo);
     }
-    withdraw(context: TokenContext): { destination: Address; payload: string } {
-        throw new Error("Method not implemented.");
+    withdraw({
+        address,
+        setWallet,
+        getWallet,
+        amount,
+        getDapp,
+    }: TokenContext): {
+        destination: Address;
+        payload: string;
+    } {
+        if (!address || !setWallet || !getWallet || !amount || !getDapp) {
+            throw new MissingContextArgumentError([
+                "address",
+                "setWallet",
+                "getWallet",
+                "amount",
+                "getDapp",
+            ]);
+        }
+
+        // normalize address
+        address = getAddress(address);
+
+        const wallet = getWallet(address);
+
+        if (!wallet) {
+            throw new Error(`wallet of user ${address} is undefined`);
+        }
+
+        const dapp = getDapp();
+
+        // check if dapp address is defined
+        if (!dapp) {
+            throw new Error(`undefined application address`);
+        }
+
+        // check balance
+        if (wallet.ether < amount) {
+            throw new Error(
+                `insufficient balance of user ${address}: ${amount.toString()} > ${wallet.ether.toString()}`,
+            );
+        }
+
+        // reduce balance right away
+        wallet.ether = wallet.ether - amount;
+
+        // create voucher
+        const call = encodeFunctionData({
+            abi: cartesiDAppAbi,
+            functionName: "withdrawEther",
+            args: [address as Address, amount],
+        });
+        return {
+            destination: dapp, // dapp Address
+            payload: call,
+        };
     }
     isDeposit(msgSender: Address): boolean {
         return msgSender === etherPortalAddress;
@@ -89,14 +188,130 @@ class ERC20 implements TokenOperation {
         const result = wallet.erc20.get(erc20address) ?? 0n;
         return result as T;
     }
-    transfer(context: TokenContext): Promise<void> {
-        throw new Error("Method not implemented.");
+    transfer({
+        token,
+        from,
+        to,
+        amount,
+        getWallet,
+        setWallet,
+    }: TokenContext): void {
+        if (!token || !from || !to || !amount || !getWallet || !setWallet)
+            throw new MissingContextArgumentError([
+                "token",
+                "from",
+                "to",
+                "amount",
+                "getWallet",
+                "setWallet",
+            ]);
+
+        // normalize addresses
+        if (isAddress(from)) {
+            from = getAddress(from);
+        }
+        if (isAddress(to)) {
+            to = getAddress(to);
+        }
+
+        const walletFrom = getWallet(from);
+        const walletTo = getWallet(to);
+
+        const balance = walletFrom.erc20.get(token);
+
+        if (!balance || balance < amount) {
+            throw new Error(
+                `insufficient balance of user ${from} of token ${token}`,
+            );
+        }
+
+        const balanceFrom = balance - amount;
+        walletFrom.erc20.set(token, balanceFrom);
+
+        const balanceTo = walletTo.erc20.get(token);
+
+        if (balanceTo) {
+            walletTo.erc20.set(token, balanceTo + amount);
+        } else {
+            walletTo.erc20.set(token, amount);
+        }
+
+        setWallet(from as Address, walletFrom);
+        setWallet(to as Address, walletTo);
     }
-    withdraw(context: TokenContext): { destination: Address; payload: string } {
-        throw new Error("Method not implemented.");
+    withdraw({ token, address, getWallet, amount }: TokenContext): {
+        destination: Address;
+        payload: string;
+    } {
+        if (!token || !address || !getWallet || !amount) {
+            throw new MissingContextArgumentError([
+                "token",
+                "address",
+                "getWallet",
+                "amount",
+            ]);
+        }
+
+        // normalize addresses
+        token = getAddress(token);
+        address = getAddress(address);
+
+        const wallet = getWallet(address);
+
+        if (!wallet) {
+            throw new Error(`wallet of user ${address} is undefined`);
+        }
+
+        const balance = wallet?.erc20.get(token);
+
+        // check balance
+        if (!balance || balance < amount) {
+            throw new Error(
+                `insufficient balance of user ${address} of token ${token}: ${amount.toString()} > ${
+                    balance?.toString() ?? "0"
+                }`,
+            );
+        }
+
+        // reduce balance right away
+        wallet.erc20.set(token, balance - amount);
+
+        const call = encodeFunctionData({
+            abi: erc20Abi,
+            functionName: "transfer",
+            args: [address as Address, amount],
+        });
+
+        // create voucher to the ERC-20 transfer
+        return {
+            destination: token,
+            payload: call,
+        };
     }
-    deposit(context: TokenContext): Promise<void> {
-        throw new Error("Method not implemented.");
+    deposit({ payload, getWallet, setWallet }: TokenContext): void {
+        if (!payload || !isHex(payload) || !getWallet || !setWallet) {
+            throw new MissingContextArgumentError([
+                "payload",
+                "getWallet",
+                "setWallet",
+            ]);
+        }
+
+        const { success, token, sender, amount } = parseERC20Deposit(payload);
+        if (success) {
+            const wallet = getWallet(sender);
+
+            const balance = wallet.erc20.get(token);
+
+            if (balance) {
+                wallet.erc20.set(token, balance + amount);
+            } else {
+                wallet.erc20.set(token, amount);
+            }
+
+            this.wallets.set(sender, wallet);
+        }
+        return "accept";
     }
     isDeposit(msgSender: Address): boolean {
         return msgSender === erc20PortalAddress;
