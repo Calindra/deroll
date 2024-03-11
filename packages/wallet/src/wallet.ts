@@ -1,5 +1,11 @@
 import { AdvanceRequestHandler, Voucher } from "@deroll/app";
-import { Address, encodeFunctionData, getAddress, isAddress } from "viem";
+import {
+    Address,
+    encodeFunctionData,
+    erc20Abi,
+    getAddress,
+    isAddress,
+} from "viem";
 
 import {
     cartesiDAppAbi,

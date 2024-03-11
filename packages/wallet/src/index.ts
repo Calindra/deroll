@@ -62,7 +62,7 @@ export type ERC1155BatchDeposit = {
 };
 
 /**
- * Decode input according to https://github.com/cartesi/rollups/tree/v1.0.0#input-encodings-for-deposits
+ * Decode input according to https://github.com/cartesi/rollups-contracts/tree/v1.2.0#input-encodings-for-deposits
  * @param payload input payload
  * @returns
  */
@@ -74,7 +74,7 @@ export const parseEtherDeposit = (payload: Payload): EtherDeposit => {
 };
 
 /**
- * Decode input according to https://github.com/cartesi/rollups/tree/v1.0.0#input-encodings-for-deposits
+ * Decode input according to https://github.com/cartesi/rollups-contracts/tree/v1.2.0#input-encodings-for-deposits
  * @param payload input payload
  * @returns
  */
