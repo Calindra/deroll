@@ -131,24 +131,19 @@ export class WalletAppImpl implements WalletApp {
         tokenOrAddress: string | Address,
         address?: string,
     ): bigint {
+        const handler = TokenHandler.getInstance();
+
         if (address && isAddress(address)) {
-            // if is address, normalize it
-            if (isAddress(address)) {
-                address = getAddress(address);
-            }
-
-            // erc-20 balance
-            const erc20address = getAddress(tokenOrAddress);
-            const wallet = this.getWalletOrNew(address);
-            return wallet.erc20.get(erc20address) ?? 0n;
+            return handler.erc20.balanceOf({
+                address,
+                getWallet: this.getWalletOrNew,
+                tokenOrAddress,
+            });
         } else {
-            // if is address, normalize it
-            if (isAddress(tokenOrAddress)) {
-                tokenOrAddress = getAddress(tokenOrAddress);
-            }
-
-            // ether balance
-            return this.wallets.get(tokenOrAddress)?.ether ?? 0n;
+            return handler.ether.balanceOf({
+                getWallet: this.getWalletOrNew,
+                tokenOrAddress,
+            });
         }
     }
 
@@ -225,9 +220,8 @@ export class WalletAppImpl implements WalletApp {
                     setWallet: this.setWallet,
                 });
 
-                return "accept"
+                return "accept";
             }
-
         } catch (e) {
             console.log("Error", e);
         }

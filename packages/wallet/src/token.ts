@@ -194,6 +194,7 @@ class ERC20 implements TokenOperation {
             throw new MissingContextArgumentError<TokenContext>({
                 address,
                 getWallet,
+                tokenOrAddress,
             });
         const addr = getAddress(address);
 
