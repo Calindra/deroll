@@ -22,7 +22,13 @@ import {
     etherPortalAddress,
 } from "./rollups";
 import type { Voucher } from "@deroll/app";
-import { parseERC20Deposit, parseEtherDeposit } from ".";
+import {
+    parseERC1155BatchDeposit,
+    parseERC1155SingleDeposit,
+    parseERC20Deposit,
+    parseERC721Deposit,
+    parseEtherDeposit,
+} from ".";
 import type { Wallet } from "./wallet";
 
 export type TokenContext = Partial<{
@@ -46,9 +52,7 @@ export type TokenContext = Partial<{
 
 export interface TokenOperation {
     isDeposit(msgSender: Address): boolean;
-
     deposit(context: TokenContext): Promise<void>;
-
     balanceOf<T extends bigint | bigint[]>(context: TokenContext): T;
     transfer(context: TokenContext): void;
     withdraw(context: TokenContext): Voucher;
@@ -60,10 +64,10 @@ class Ether implements TokenOperation {
         getWallet,
     }: TokenContext): T {
         if (!tokenOrAddress || !getWallet)
-            throw new MissingContextArgumentError([
-                "tokenOrAddress",
-                "getWallet",
-            ]);
+            throw new MissingContextArgumentError<TokenContext>({
+                tokenOrAddress,
+                getWallet,
+            });
 
         if (isAddress(tokenOrAddress)) {
             tokenOrAddress = getAddress(tokenOrAddress);
@@ -76,13 +80,13 @@ class Ether implements TokenOperation {
     }
     transfer({ getWallet, from, to, amount, setWallet }: TokenContext): void {
         if (!from || !to || !amount || !getWallet || !setWallet) {
-            throw new MissingContextArgumentError([
-                "from",
-                "to",
-                "amount",
-                "getWallet",
-                "setWallet",
-            ]);
+            throw new MissingContextArgumentError<TokenContext>({
+                from,
+                to,
+                amount,
+                getWallet,
+                setWallet,
+            });
         }
 
         const walletFrom = getWallet(from);
@@ -108,13 +112,13 @@ class Ether implements TokenOperation {
         payload: string;
     } {
         if (!address || !setWallet || !getWallet || !amount || !getDapp) {
-            throw new MissingContextArgumentError([
-                "address",
-                "setWallet",
-                "getWallet",
-                "amount",
-                "getDapp",
-            ]);
+            throw new MissingContextArgumentError<TokenContext>({
+                address,
+                setWallet,
+                getWallet,
+                amount,
+                getDapp,
+            });
         }
 
         // normalize address
@@ -157,19 +161,26 @@ class Ether implements TokenOperation {
     isDeposit(msgSender: Address): boolean {
         return msgSender === etherPortalAddress;
     }
-    async deposit(context: TokenContext): Promise<void> {
-        if (!context.payload || !isHex(context.payload))
-            throw new MissingContextArgumentError(["payload"]);
+    async deposit({
+        payload,
+        setWallet,
+        getWallet,
+    }: TokenContext): Promise<void> {
+        console.log("Ether data");
 
-        if (!context.getWallet || !context.setWallet) {
-            throw new MissingContextArgumentError(["getWallet", "setWallet"]);
+        if (!payload || !isHex(payload) || !getWallet || !setWallet) {
+            throw new MissingContextArgumentError<TokenContext>({
+                payload,
+                getWallet,
+                setWallet,
+            });
         }
 
         console.log("etherPortalAddress");
-        const { sender, value } = parseEtherDeposit(context.payload);
-        const wallet = context.getWallet(sender);
+        const { sender, value } = parseEtherDeposit(payload);
+        const wallet = getWallet(sender);
         wallet.ether += value;
-        context.setWallet(sender, wallet);
+        setWallet(sender, wallet);
     }
 }
 
@@ -180,7 +191,10 @@ class ERC20 implements TokenOperation {
         tokenOrAddress,
     }: TokenContext): T {
         if (!address || !getWallet || !tokenOrAddress)
-            throw new MissingContextArgumentError(["address", "getWallet"]);
+            throw new MissingContextArgumentError<TokenContext>({
+                address,
+                getWallet,
+            });
         const addr = getAddress(address);
 
         const erc20address = getAddress(tokenOrAddress);
@@ -197,14 +211,14 @@ class ERC20 implements TokenOperation {
         setWallet,
     }: TokenContext): void {
         if (!token || !from || !to || !amount || !getWallet || !setWallet)
-            throw new MissingContextArgumentError([
-                "token",
-                "from",
-                "to",
-                "amount",
-                "getWallet",
-                "setWallet",
-            ]);
+            throw new MissingContextArgumentError<TokenContext>({
+                token,
+                from,
+                to,
+                amount,
+                getWallet,
+                setWallet,
+            });
 
         // normalize addresses
         if (isAddress(from)) {
@@ -244,12 +258,12 @@ class ERC20 implements TokenOperation {
         payload: string;
     } {
         if (!token || !address || !getWallet || !amount) {
-            throw new MissingContextArgumentError([
-                "token",
-                "address",
-                "getWallet",
-                "amount",
-            ]);
+            throw new MissingContextArgumentError<TokenContext>({
+                token,
+                address,
+                getWallet,
+                amount,
+            });
         }
 
         // normalize addresses
@@ -288,13 +302,19 @@ class ERC20 implements TokenOperation {
             payload: call,
         };
     }
-    deposit({ payload, getWallet, setWallet }: TokenContext): void {
+    async deposit({
+        payload,
+        getWallet,
+        setWallet,
+    }: TokenContext): Promise<void> {
+        console.log("ERC-20 data");
+
         if (!payload || !isHex(payload) || !getWallet || !setWallet) {
-            throw new MissingContextArgumentError([
-                "payload",
-                "getWallet",
-                "setWallet",
-            ]);
+            throw new MissingContextArgumentError<TokenContext>({
+                payload,
+                getWallet,
+                setWallet,
+            });
         }
 
         const { success, token, sender, amount } = parseERC20Deposit(payload);
@@ -309,43 +329,104 @@ class ERC20 implements TokenOperation {
                 wallet.erc20.set(token, amount);
             }
 
-            this.wallets.set(sender, wallet);
+            setWallet(sender, wallet);
         }
-        return "accept";
     }
     isDeposit(msgSender: Address): boolean {
         return msgSender === erc20PortalAddress;
     }
 }
 class ERC721 implements TokenOperation {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     balanceOf<T extends bigint | bigint[]>(context: TokenContext): T {
         throw new Error("Method not implemented.");
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     transfer(context: TokenContext): Promise<void> {
         throw new Error("Method not implemented.");
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     withdraw(context: TokenContext): { destination: Address; payload: string } {
         throw new Error("Method not implemented.");
     }
-    deposit(context: TokenContext): Promise<void> {
-        throw new Error("Method not implemented.");
+    async deposit({
+        payload,
+        setWallet,
+        getWallet,
+    }: TokenContext): Promise<void> {
+        console.log("ERC-721 data");
+
+        if (!payload || !isHex(payload) || !setWallet || !getWallet) {
+            throw new MissingContextArgumentError<TokenContext>({
+                payload,
+                setWallet,
+                getWallet,
+            });
+        }
+
+        const { token, sender, tokenId } = parseERC721Deposit(payload);
+
+        const wallet = getWallet(sender);
+
+        const collection = wallet.erc721.get(token);
+        if (collection) {
+            collection.add(tokenId);
+        } else {
+            const collection = new Set([tokenId]);
+            wallet.erc721.set(token, collection);
+        }
+        setWallet(sender, wallet);
     }
     isDeposit(msgSender: Address): boolean {
         return msgSender === erc721PortalAddress;
     }
 }
 class ERC1155Batch implements TokenOperation {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     balanceOf<T extends bigint | bigint[]>(context: TokenContext): T {
         throw new Error("Method not implemented.");
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     transfer(context: TokenContext): Promise<void> {
         throw new Error("Method not implemented.");
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     withdraw(context: TokenContext): { destination: Address; payload: string } {
         throw new Error("Method not implemented.");
     }
-    deposit(context: TokenContext): Promise<void> {
-        throw new Error("Method not implemented.");
+    async deposit({
+        payload,
+        setWallet,
+        getWallet,
+    }: TokenContext): Promise<void> {
+        console.log("ERC-1155 batch");
+
+        if (!payload || !isHex(payload) || !getWallet || !setWallet) {
+            throw new MissingContextArgumentError<TokenContext>({
+                payload,
+                getWallet,
+                setWallet,
+            });
+        }
+
+        const { token, sender, tokenIds, values } =
+            parseERC1155BatchDeposit(payload);
+
+        const wallet = getWallet(sender);
+        let collection = wallet.erc1155.get(token);
+        if (!collection) {
+            collection = new Map();
+            wallet.erc1155.set(token, collection);
+        }
+
+        for (let i = 0; i < tokenIds.length; i++) {
+            const tokenId = tokenIds[i];
+            const value = values[i];
+
+            const tokenBalance = collection.get(tokenId) ?? 0n;
+            collection.set(tokenId, tokenBalance + value);
+        }
+        setWallet(sender, wallet);
     }
     isDeposit(msgSender: Address): boolean {
         return msgSender === erc1155BatchPortalAddress;
@@ -353,17 +434,46 @@ class ERC1155Batch implements TokenOperation {
 }
 
 class ERC1155Single implements TokenOperation {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     balanceOf<T extends bigint | bigint[]>(context: TokenContext): T {
         throw new Error("Method not implemented.");
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     transfer(context: TokenContext): Promise<void> {
         throw new Error("Method not implemented.");
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     withdraw(context: TokenContext): { destination: Address; payload: string } {
         throw new Error("Method not implemented.");
     }
-    deposit(context: TokenContext): Promise<void> {
-        throw new Error("Method not implemented.");
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    async deposit({
+        payload,
+        setWallet,
+        getWallet,
+    }: TokenContext): Promise<void> {
+        console.log("ERC-1155 single");
+
+        if (!payload || !isHex(payload) || !getWallet || !setWallet) {
+            throw new MissingContextArgumentError<TokenContext>({
+                payload,
+                getWallet,
+                setWallet,
+            });
+        }
+
+        const { tokenId, sender, token, value } =
+            parseERC1155SingleDeposit(payload);
+
+        const wallet = getWallet(sender);
+        let collection = wallet.erc1155.get(token);
+        if (!collection) {
+            collection = new Map();
+            wallet.erc1155.set(token, collection);
+        }
+        const tokenBalance = collection.get(tokenId) ?? 0n;
+        collection.set(tokenId, tokenBalance + value);
+        setWallet(sender, wallet);
     }
     isDeposit(msgSender: Address): boolean {
         return msgSender === erc1155SinglePortalAddress;
@@ -375,8 +485,13 @@ class Relay implements TokenOperation {
         return msgSender === dAppAddressRelayAddress;
     }
     async deposit({ payload, setDapp }: TokenContext): Promise<void> {
+        console.log("dAppAddressRelayAddress");
+
         if (!payload || !setDapp)
-            throw new MissingContextArgumentError(["setDapp", "payload"]);
+            throw new MissingContextArgumentError<TokenContext>({
+                setDapp,
+                payload,
+            });
         console.log("dAppAddressRelayAddress");
         const dapp = getAddress(payload);
         setDapp(dapp);
@@ -394,19 +509,26 @@ class Relay implements TokenOperation {
 
 export class TokenHandler {
     private static instance: TokenHandler;
-    private readonly handlers: TokenOperation[];
+    private readonly handlers: Readonly<TokenOperation>[];
+
+    public readonly ether = new Ether();
+    public readonly erc20 = new ERC20();
+    public readonly erc721 = new ERC721();
+    public readonly erc1155Single = new ERC1155Single();
+    public readonly erc1155Batch = new ERC1155Batch();
+    public readonly relay = new Relay();
 
     /**
      * Singleton
      */
     private constructor() {
         this.handlers = [
-            new Ether(),
-            new ERC20(),
-            new ERC721(),
-            new ERC1155Batch(),
-            new ERC1155Single(),
-            new Relay(),
+            this.ether,
+            this.erc20,
+            this.erc721,
+            this.erc1155Single,
+            this.erc1155Batch,
+            this.relay,
         ];
     }
     public static getInstance(): TokenHandler {
@@ -422,7 +544,7 @@ export class TokenHandler {
      * @returns
      * @throws if data is invalid
      */
-    public findDepositHandler(data: unknown): TokenOperation | undefined {
+    public findDeposit(data: unknown): TokenOperation | undefined {
         if (!isValidAdvanceRequestData(data)) {
             throw new InvalidPayloadError(data);
         }

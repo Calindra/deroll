@@ -1,5 +1,5 @@
 import { inspect } from "node:util";
-import type { TokenContext, TokenOperation } from "./token";
+import type { TokenOperation } from "./token";
 
 export class InvalidPayloadError extends Error {
     constructor(public payload: unknown) {
@@ -7,14 +7,14 @@ export class InvalidPayloadError extends Error {
     }
 }
 
-export class MissingContextArgumentError<
-    T extends string = keyof TokenContext,
-> extends Error {
-    constructor(public args: T[]) {
-        super(`Missing context argument: ${args.join(", ")}`);
+export class MissingContextArgumentError<T extends object> extends Error {
+    constructor(obj: T) {
+        const missingKeys = Object.keys(obj).filter(
+            (key) => obj[key as keyof T] === undefined,
+        );
+        super(`Missing context argument: ${missingKeys.join(", ")}`);
     }
 }
-
 export class NotApplicableError<
     T extends string = keyof TokenOperation,
 > extends Error {

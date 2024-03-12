@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { AdvanceRequestHandler, Voucher } from "@deroll/app";
 import { Address, encodeFunctionData, getAddress, isAddress } from "viem";
 
@@ -21,6 +22,7 @@ import {
     parseERC1155BatchDeposit,
 } from ".";
 import { inspect } from "node:util";
+import { TokenHandler } from "./token";
 
 export type Wallet = {
     ether: bigint;
@@ -77,18 +79,21 @@ export class WalletAppImpl implements WalletApp {
     private dapp?: Address;
     private wallets = new Map<string, Wallet>();
 
-    /**
-     * @todo we need *bind* this?
-     */
     constructor() {
         this.handler = this.handler.bind(this);
         this.getDappAddressOrThrow = this.getDappAddressOrThrow.bind(this);
         this.getWalletOrNew = this.getWalletOrNew.bind(this);
+        this.setDapp = this.setDapp.bind(this);
+        this.setWallet = this.setWallet.bind(this);
         this.createDefaultWallet = this.createDefaultWallet.bind(this);
     }
 
     setDapp(address: Address): void {
         this.dapp = address;
+    }
+
+    setWallet(address: string, wallet: Wallet): void {
+        this.wallets.set(address, wallet);
     }
 
     getWalletOrNew(address: string): Wallet {
@@ -208,119 +213,21 @@ export class WalletAppImpl implements WalletApp {
 
     public handler: AdvanceRequestHandler = async (data) => {
         try {
-            // const tokenHandler = TokenHandler.getInstance();
-            // const handler = tokenHandler.findDeposit(data);
-            // if (handler) {
-            //     await handler.operation.deposit({
-            //         setDapp: this.setDapp,
-            //         payload: data.payload,
-            //     });
-            //
-            //     return "accept"
-            // }
-
-            // Ether Deposit
-            if (isEtherDeposit(data)) {
-                const { sender, value } = parseEtherDeposit(data.payload);
-                const wallet = this.getWalletOrNew(sender);
-                wallet.ether += value;
-                this.wallets.set(sender, wallet);
-                return "accept";
-            }
             console.log("Wallet handler...", inspect(data, { depth: null }));
 
-            // ERC20 Deposit
-            if (isERC20Deposit(data)) {
-                const { success, token, sender, amount } = parseERC20Deposit(
-                    data.payload,
-                );
-                if (success) {
-                    const wallet = this.getWalletOrNew(sender);
+            const tokenHandler = TokenHandler.getInstance();
+            const handler = tokenHandler.findDeposit(data);
+            if (handler) {
+                await handler.deposit({
+                    setDapp: this.setDapp,
+                    payload: data.payload,
+                    getWallet: this.getWalletOrNew,
+                    setWallet: this.setWallet,
+                });
 
-                    const balance = wallet.erc20.get(token);
-
-                    if (balance) {
-                        wallet.erc20.set(token, balance + amount);
-                    } else {
-                        wallet.erc20.set(token, amount);
-                    }
-
-                    this.wallets.set(sender, wallet);
-                }
-                return "accept";
+                return "accept"
             }
 
-            // ERC721 Deposit
-            if (isERC721Deposit(data)) {
-                console.log("ERC-721 data");
-                const { token, sender, tokenId } = parseERC721Deposit(
-                    data.payload,
-                );
-
-                const wallet = this.getWalletOrNew(sender);
-
-                const collection = wallet.erc721.get(token);
-                if (collection) {
-                    collection.add(tokenId);
-                } else {
-                    const collection = new Set([tokenId]);
-                    wallet.erc721.set(token, collection);
-                }
-                this.wallets.set(sender, wallet);
-                return "accept";
-            }
-
-            // ERC1155 Single Deposit
-            if (isERC1155SingleDeposit(data)) {
-                console.log("ERC-1155 single");
-                const { tokenId, sender, token, value } =
-                    parseERC1155SingleDeposit(data.payload);
-
-                const wallet = this.getWalletOrNew(sender);
-                let collection = wallet.erc1155.get(token);
-                if (!collection) {
-                    collection = new Map();
-                    wallet.erc1155.set(token, collection);
-                }
-                const tokenBalance = collection.get(tokenId) ?? 0n;
-                collection.set(tokenId, tokenBalance + value);
-                this.wallets.set(sender, wallet);
-                return "accept";
-            }
-
-            // ERC1155 Batch Deposit
-            if (isERC1155BatchDeposit(data)) {
-                console.log("ERC-1155 batch");
-                const { token, sender, tokenIds, values } =
-                    parseERC1155BatchDeposit(data.payload);
-
-                const wallet = this.getWalletOrNew(sender);
-                let collection = wallet.erc1155.get(token);
-                if (!collection) {
-                    collection = new Map();
-                    wallet.erc1155.set(token, collection);
-                }
-
-                for (let i = 0; i < tokenIds.length; i++) {
-                    const tokenId = tokenIds[i];
-                    const value = values[i];
-
-                    const tokenBalance = collection.get(tokenId) ?? 0n;
-                    collection.set(tokenId, tokenBalance + value);
-                }
-                this.wallets.set(sender, wallet);
-
-                return "accept";
-            }
-
-            // Relay Address
-            if (
-                getAddress(data.metadata.msg_sender) === dAppAddressRelayAddress
-            ) {
-                console.log("dAppAddressRelayAddress");
-                this.dapp = getAddress(data.payload);
-                return "accept";
-            }
         } catch (e) {
             console.log("Error", e);
         }
