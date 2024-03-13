@@ -51,9 +51,6 @@ export interface WalletApp {
         tokenIds: bigint | bigint[],
         values: bigint | bigint[],
     ): Voucher;
-    createDefaultWallet(): Wallet;
-    getWalletOrNew(address: string): Wallet;
-    setDapp(address: Address): void;
 }
 
 export class WalletAppImpl implements WalletApp {
