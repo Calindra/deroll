@@ -29,3 +29,25 @@ export const isValidAdvanceRequestData = (
         isHex(data.payload, { strict: true })
     );
 };
+
+/*
+ * Check if all args are of the same type
+ * */
+export const isSameType = (...args: unknown[]) => {
+    let allAreArr = true;
+    let noneAreArr = true;
+
+    for (let i = 0; i < args.length; i++) {
+        if (Array.isArray(args[i])) {
+            noneAreArr = false;
+        } else {
+            allAreArr = false;
+        }
+
+        if (!allAreArr && !noneAreArr) {
+            return false;
+        }
+    }
+
+    return true;
+};

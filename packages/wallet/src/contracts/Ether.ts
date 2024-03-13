@@ -4,19 +4,17 @@ import {
     type Address,
     isHex,
     isAddress,
-    encodeFunctionData
+    encodeFunctionData,
 } from "viem";
-import {
-    cartesiDAppAbi,
-    etherPortalAddress
-} from "../rollups";
+import { cartesiDAppAbi, etherPortalAddress } from "../rollups";
 import type { Voucher } from "@deroll/app";
 import { parseEtherDeposit } from "..";
 import { TokenOperation, TokenContext } from "../token";
 
 export class Ether implements TokenOperation {
     balanceOf<T extends bigint | bigint[]>({
-        tokenOrAddress, getWallet,
+        tokenOrAddress,
+        getWallet,
     }: TokenContext): T {
         if (!tokenOrAddress || !getWallet)
             throw new MissingContextArgumentError<TokenContext>({
@@ -57,7 +55,11 @@ export class Ether implements TokenOperation {
         setWallet(to as Address, walletTo);
     }
     withdraw({
-        address, setWallet, getWallet, amount, getDapp,
+        address,
+        setWallet,
+        getWallet,
+        amount,
+        getDapp,
     }: TokenContext): Voucher {
         if (!address || !setWallet || !getWallet || !amount || !getDapp) {
             throw new MissingContextArgumentError<TokenContext>({
@@ -88,7 +90,7 @@ export class Ether implements TokenOperation {
         // check balance
         if (wallet.ether < amount) {
             throw new Error(
-                `insufficient balance of user ${address}: ${amount.toString()} > ${wallet.ether.toString()}`
+                `insufficient balance of user ${address}: ${amount.toString()} > ${wallet.ether.toString()}`,
             );
         }
 
@@ -110,7 +112,9 @@ export class Ether implements TokenOperation {
         return msgSender === etherPortalAddress;
     }
     async deposit({
-        payload, setWallet, getWallet,
+        payload,
+        setWallet,
+        getWallet,
     }: TokenContext): Promise<void> {
         console.log("Ether data");
 

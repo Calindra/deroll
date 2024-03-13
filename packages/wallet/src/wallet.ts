@@ -4,6 +4,7 @@ import { Address, encodeFunctionData, getAddress, isAddress } from "viem";
 import { cartesiDAppAbi, erc20Abi, erc1155Abi, erc721Abi } from "./rollups";
 import { inspect } from "node:util";
 import { TokenHandler } from "./token";
+import { isSameType } from "./util";
 
 export type Wallet = {
     ether: bigint;
@@ -134,7 +135,7 @@ export class WalletAppImpl implements WalletApp {
         tokenIds: bigint | bigint[],
         owner: string | Address,
     ): bigint | bigint[] {
-        if (!this.isSameType(tokenIds, addresses)) {
+        if (!isSameType(tokenIds, addresses)) {
             throw new Error(
                 "addresses and tokenIds must be both arrays or not",
             );
@@ -453,13 +454,6 @@ export class WalletAppImpl implements WalletApp {
         };
     }
 
-    isSameType(...args: unknown[]) {
-        const allAreArr = args.every((arg) => Array.isArray(arg));
-        const noneAreArr = args.every((arg) => !Array.isArray(arg));
-
-        return allAreArr || noneAreArr;
-    }
-
     withdrawERC721(token: Address, address: Address, tokenId: bigint): Voucher {
         token = getAddress(token);
         address = getAddress(address);
@@ -510,7 +504,7 @@ export class WalletAppImpl implements WalletApp {
         tokenIds: bigint | bigint[],
         values: bigint | bigint[],
     ): Voucher {
-        if (!this.isSameType(tokenIds, values)) {
+        if (!isSameType(tokenIds, values)) {
             throw new Error(
                 "tokenIds and values must be arrays or bigints both",
             );

@@ -8,7 +8,8 @@ import {
     slice,
 } from "viem";
 
-import { WalletApp, WalletAppImpl } from "./wallet";
+import { WalletApp } from "./wallet";
+import { WalletAppImpl } from "./util";
 import {
     erc20PortalAddress,
     etherPortalAddress,
