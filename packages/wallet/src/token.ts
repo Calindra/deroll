@@ -1,9 +1,5 @@
 import { isValidAdvanceRequestData } from "./util";
-import {
-    InvalidPayloadError,
-    MissingContextArgumentError,
-    NotApplicableError,
-} from "./errors";
+import { InvalidPayloadError, MissingContextArgumentError } from "./errors";
 import {
     getAddress,
     type Address,
@@ -53,9 +49,9 @@ export type TokenContext = Partial<{
 export interface TokenOperation {
     isDeposit(msgSender: Address): boolean;
     deposit(context: TokenContext): Promise<void>;
-    balanceOf<T extends bigint | bigint[]>(context: TokenContext): T;
-    transfer(context: TokenContext): void;
-    withdraw(context: TokenContext): Voucher;
+    // balanceOf<T extends bigint | bigint[]>(context: TokenContext): T;
+    // transfer(context: TokenContext): void;
+    // withdraw(context: TokenContext): Voucher;
 }
 
 class Ether implements TokenOperation {
@@ -107,10 +103,7 @@ class Ether implements TokenOperation {
         getWallet,
         amount,
         getDapp,
-    }: TokenContext): {
-        destination: Address;
-        payload: string;
-    } {
+    }: TokenContext): Voucher {
         if (!address || !setWallet || !getWallet || !amount || !getDapp) {
             throw new MissingContextArgumentError<TokenContext>({
                 address,
@@ -254,10 +247,7 @@ class ERC20 implements TokenOperation {
         setWallet(from as Address, walletFrom);
         setWallet(to as Address, walletTo);
     }
-    withdraw({ token, address, getWallet, amount }: TokenContext): {
-        destination: Address;
-        payload: string;
-    } {
+    withdraw({ token, address, getWallet, amount }: TokenContext): Voucher {
         if (!token || !address || !getWallet || !amount) {
             throw new MissingContextArgumentError<TokenContext>({
                 token,
@@ -497,15 +487,6 @@ class Relay implements TokenOperation {
         const dapp = getAddress(payload);
         setDapp(dapp);
     }
-    balanceOf<T extends bigint | bigint[]>(): T {
-        throw new NotApplicableError(this.balanceOf.name);
-    }
-    transfer(): Promise<void> {
-        throw new NotApplicableError(this.transfer.name);
-    }
-    withdraw(): { destination: Address; payload: string } {
-        throw new NotApplicableError(this.withdraw.name);
-    }
 }
 
 export class TokenHandler {
@@ -517,7 +498,6 @@ export class TokenHandler {
     public readonly erc721 = new ERC721();
     public readonly erc1155Single = new ERC1155Single();
     public readonly erc1155Batch = new ERC1155Batch();
-    public readonly relay = new Relay();
 
     /**
      * Singleton
@@ -529,7 +509,7 @@ export class TokenHandler {
             this.erc721,
             this.erc1155Single,
             this.erc1155Batch,
-            this.relay,
+            new Relay(),
         ];
     }
     public static getInstance(): TokenHandler {
