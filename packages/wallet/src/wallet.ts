@@ -79,24 +79,15 @@ export class WalletAppImpl implements WalletApp {
     private dapp?: Address;
     private wallets = new Map<string, Wallet>();
 
-    constructor() {
-        this.handler = this.handler.bind(this);
-        this.getDappAddressOrThrow = this.getDappAddressOrThrow.bind(this);
-        this.getWalletOrNew = this.getWalletOrNew.bind(this);
-        this.setDapp = this.setDapp.bind(this);
-        this.setWallet = this.setWallet.bind(this);
-        this.createDefaultWallet = this.createDefaultWallet.bind(this);
-    }
-
-    setDapp(address: Address): void {
+    setDapp = (address: Address): void => {
         this.dapp = address;
-    }
+    };
 
-    setWallet(address: string, wallet: Wallet): void {
+    setWallet = (address: string, wallet: Wallet): void => {
         this.wallets.set(address, wallet);
-    }
+    };
 
-    getWalletOrNew(address: string): Wallet {
+    getWalletOrNew = (address: string): Wallet => {
         if (isAddress(address)) {
             address = getAddress(address);
         }
@@ -110,7 +101,7 @@ export class WalletAppImpl implements WalletApp {
         this.wallets.set(address, newWallet);
 
         return newWallet;
-    }
+    };
 
     createDefaultWallet(): Wallet {
         return {
@@ -526,14 +517,14 @@ export class WalletAppImpl implements WalletApp {
         };
     }
 
-    getDappAddressOrThrow(): Address {
+    getDappAddressOrThrow = (): Address => {
         if (!this.dapp) {
             throw new Error(
                 `You need to call the method relayDAppAddress from DAppAddressRelay__factory.`,
             );
         }
         return this.dapp;
-    }
+    };
 
     withdrawERC1155(
         token: Address,
