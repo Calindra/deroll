@@ -15,6 +15,7 @@ module.exports = {
         node: true,
     },
     rules: {
-        "prefer-const": "error"
+        "prefer-const": "error",
+        // "@typescript-eslint/unbound-method": "error"
     },
 };

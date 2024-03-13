@@ -1,26 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { AdvanceRequestHandler, Voucher } from "@deroll/app";
 import { Address, encodeFunctionData, getAddress, isAddress } from "viem";
 
-import {
-    cartesiDAppAbi,
-    dAppAddressRelayAddress,
-    erc20Abi,
-    erc1155Abi,
-    erc721Abi,
-} from "./rollups";
-import {
-    isERC20Deposit,
-    isEtherDeposit,
-    isERC721Deposit,
-    isERC1155SingleDeposit,
-    isERC1155BatchDeposit,
-    parseERC20Deposit,
-    parseEtherDeposit,
-    parseERC721Deposit,
-    parseERC1155SingleDeposit,
-    parseERC1155BatchDeposit,
-} from ".";
+import { cartesiDAppAbi, erc20Abi, erc1155Abi, erc721Abi } from "./rollups";
 import { inspect } from "node:util";
 import { TokenHandler } from "./token";
 
