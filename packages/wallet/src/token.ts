@@ -21,6 +21,7 @@ export type TokenContext = Partial<{
     to: string;
     owner: string;
     amount: bigint;
+    amounts: bigint[];
     tokenOrAddress: string;
     recipient: Address;
     payload: Hex;

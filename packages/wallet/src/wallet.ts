@@ -1,10 +1,8 @@
 import { AdvanceRequestHandler, Voucher } from "@deroll/app";
-import { Address, encodeFunctionData, getAddress, isAddress } from "viem";
+import { Address, getAddress, isAddress } from "viem";
 
-import { cartesiDAppAbi, erc20Abi, erc1155Abi, erc721Abi } from "./rollups";
 import { inspect } from "node:util";
 import { TokenHandler } from "./token";
-import { isSameType } from "./util";
 
 export type Wallet = {
     ether: bigint;
@@ -58,6 +56,7 @@ export class WalletAppImpl implements WalletApp {
     private dapp?: Address;
     private wallets = new Map<string, Wallet>();
 
+    constructor() {}
     setDapp = (address: Address): void => {
         this.dapp = address;
     };
@@ -121,13 +120,12 @@ export class WalletAppImpl implements WalletApp {
         address: string | Address,
         owner: string | Address,
     ): bigint {
-        const ownerAddress = getAddress(owner);
-        const wallet = this.getWalletOrNew(ownerAddress);
-        if (isAddress(address)) {
-            address = getAddress(address);
-        }
-        const size = wallet.erc721.get(address as Address)?.size ?? 0n;
-        return BigInt(size);
+        const handler = TokenHandler.getInstance();
+        return handler.erc721.balanceOf({
+            address,
+            getWallet: this.getWalletOrNew,
+            owner,
+        });
     }
 
     public balanceOfERC1155(
@@ -135,45 +133,34 @@ export class WalletAppImpl implements WalletApp {
         tokenIds: bigint | bigint[],
         owner: string | Address,
     ): bigint | bigint[] {
-        if (!isSameType(tokenIds, addresses)) {
-            throw new Error(
-                "addresses and tokenIds must be both arrays or not",
-            );
+        const handler = TokenHandler.getInstance();
+
+        if (!Array.isArray(addresses) && !Array.isArray(tokenIds)) {
+            const address = addresses;
+            const tokenId = tokenIds;
+
+            return handler.erc1155Single.balanceOf({
+                address,
+                tokenId,
+                owner,
+                getWallet: this.getWalletOrNew,
+            });
         }
 
         if (!Array.isArray(addresses)) {
             addresses = [addresses];
         }
+
         if (!Array.isArray(tokenIds)) {
             tokenIds = [tokenIds];
         }
 
-        if (addresses.length !== tokenIds.length) {
-            throw new Error("addresses and tokenIds must have the same length");
-        }
-
-        const ownerAddress = getAddress(owner);
-        const wallet = this.getWalletOrNew(ownerAddress);
-        const balances: bigint[] = [];
-
-        for (let i = 0; i < addresses.length; i++) {
-            let address = addresses[i];
-            if (isAddress(address)) {
-                address = getAddress(address);
-            }
-
-            const tokenId = tokenIds[i];
-
-            const collection = wallet.erc1155.get(address as Address);
-            const item = collection?.get(tokenId) ?? 0n;
-            balances.push(item);
-        }
-
-        if (balances.length === 1) {
-            return balances[0];
-        }
-
-        return balances;
+        return handler.erc1155Batch.balanceOf({
+            addresses,
+            tokenIds,
+            owner,
+            getWallet: this.getWalletOrNew,
+        });
     }
 
     public handler: AdvanceRequestHandler = async (data) => {
@@ -202,25 +189,15 @@ export class WalletAppImpl implements WalletApp {
     };
 
     transferEther(from: string, to: string, amount: bigint): void {
-        // normalize addresses
-        if (isAddress(from)) {
-            from = getAddress(from);
-        }
-        if (isAddress(to)) {
-            to = getAddress(to);
-        }
-
-        const walletFrom = this.getWalletOrNew(from);
-        const walletTo = this.getWalletOrNew(to);
-
-        if (walletFrom.ether < amount) {
-            throw new Error(`insufficient balance of user ${from}`);
-        }
-
-        walletFrom.ether = walletFrom.ether - amount;
-        walletTo.ether = walletTo.ether + amount;
-        this.wallets.set(from, walletFrom);
-        this.wallets.set(to, walletTo);
+        const handler = TokenHandler.getInstance();
+        handler.ether.transfer({
+            from,
+            to,
+            amount,
+            getWallet: this.getWalletOrNew,
+            setWallet: this.setWallet,
+            getDapp: this.getDappAddressOrThrow,
+        });
     }
 
     transferERC20(
@@ -229,38 +206,15 @@ export class WalletAppImpl implements WalletApp {
         to: string,
         amount: bigint,
     ): void {
-        // normalize addresses
-        if (isAddress(from)) {
-            from = getAddress(from);
-        }
-        if (isAddress(to)) {
-            to = getAddress(to);
-        }
-
-        const walletFrom = this.getWalletOrNew(from);
-        const walletTo = this.getWalletOrNew(to);
-
-        const balance = walletFrom.erc20.get(token);
-
-        if (!balance || balance < amount) {
-            throw new Error(
-                `insufficient balance of user ${from} of token ${token}`,
-            );
-        }
-
-        const balanceFrom = balance - amount;
-        walletFrom.erc20.set(token, balanceFrom);
-
-        const balanceTo = walletTo.erc20.get(token);
-
-        if (balanceTo) {
-            walletTo.erc20.set(token, balanceTo + amount);
-        } else {
-            walletTo.erc20.set(token, amount);
-        }
-
-        this.wallets.set(from, walletFrom);
-        this.wallets.set(to, walletTo);
+        const handler = TokenHandler.getInstance();
+        handler.erc20.transfer({
+            token,
+            from,
+            to,
+            amount,
+            getWallet: this.getWalletOrNew,
+            setWallet: this.setWallet,
+        });
     }
 
     transferERC721(
@@ -269,41 +223,15 @@ export class WalletAppImpl implements WalletApp {
         to: string,
         tokenId: bigint,
     ): void {
-        // normalize addresses
-        if (isAddress(from)) {
-            from = getAddress(from);
-        }
-        if (isAddress(to)) {
-            to = getAddress(to);
-        }
-
-        const walletFrom = this.getWalletOrNew(from);
-        const walletTo = this.getWalletOrNew(to);
-
-        const balance = walletFrom.erc721.get(token);
-
-        if (!balance) {
-            throw new Error(
-                `insufficient balance of user ${from} of token ${token}`,
-            );
-        }
-
-        if (!balance.has(tokenId)) {
-            throw new Error(
-                `user ${from} does not have token ${tokenId} of token ${token}`,
-            );
-        }
-
-        let balanceTo = walletTo.erc721.get(token);
-        if (!balanceTo) {
-            balanceTo = new Set();
-            walletTo.erc721.set(token, balanceTo);
-        }
-        balanceTo.add(tokenId);
-        balance.delete(tokenId);
-
-        this.wallets.set(from, walletFrom);
-        this.wallets.set(to, walletTo);
+        const handler = TokenHandler.getInstance();
+        handler.erc721.transfer({
+            token,
+            from,
+            to,
+            tokenId,
+            getWallet: this.getWalletOrNew,
+            setWallet: this.setWallet,
+        });
     }
 
     transferERC1155(
@@ -313,180 +241,70 @@ export class WalletAppImpl implements WalletApp {
         tokenIds: bigint[],
         values: bigint[],
     ): void {
-        if (tokenIds.length !== values.length) {
-            throw new Error("tokenIds and values must have the same length");
+        const handler = TokenHandler.getInstance();
+
+        if (!Array.isArray(tokenIds) && !Array.isArray(values)) {
+            handler.erc1155Single.transfer({
+                token,
+                from,
+                to,
+                tokenId: tokenIds,
+                amount: values,
+                getWallet: this.getWalletOrNew,
+                setWallet: this.setWallet,
+            });
         }
 
-        if (isAddress(from)) {
-            from = getAddress(from);
+        if (!Array.isArray(tokenIds)) {
+            tokenIds = [tokenIds];
         }
 
-        if (isAddress(to)) {
-            to = getAddress(to);
+        if (!Array.isArray(values)) {
+            values = [values];
         }
 
-        const walletFrom = this.getWalletOrNew(from);
-        const walletTo = this.getWalletOrNew(to);
-
-        let nfts = walletFrom.erc1155.get(token);
-        if (!nfts) {
-            nfts = new Map();
-            walletFrom.erc1155.set(token, nfts);
-        }
-
-        // check balance
-        for (let i = 0; i < tokenIds.length; i++) {
-            const tokenId = tokenIds[i];
-            const value = values[i];
-
-            const item = nfts.get(tokenId) ?? 0n;
-
-            if (value < 0n) {
-                throw new Error(
-                    `negative value for tokenId ${tokenId}: ${value}`,
-                );
-            }
-            if (item < value) {
-                throw new Error(
-                    `insufficient balance of user ${from} of token ${tokenId}: ${value.toString()} > ${
-                        item.toString() ?? "0"
-                    }`,
-                );
-            }
-        }
-
-        for (let i = 0; i < tokenIds.length; i++) {
-            const tokenId = tokenIds[i];
-            const value = values[i];
-            const item = nfts.get(tokenId) ?? 0n;
-            nfts.set(tokenId, item - value);
-        }
-
-        let nftsTo = walletTo.erc1155.get(token);
-        if (!nftsTo) {
-            nftsTo = new Map();
-            walletTo.erc1155.set(token, nftsTo);
-        }
-
-        for (let i = 0; i < tokenIds.length; i++) {
-            const tokenId = tokenIds[i];
-            const value = values[i];
-            const item = nftsTo.get(tokenId) ?? 0n;
-            nftsTo.set(tokenId, item + value);
-        }
-
-        this.wallets.set(from, walletFrom);
-        this.wallets.set(to, walletTo);
+        handler.erc1155Batch.transfer({
+            token,
+            from,
+            to,
+            tokenIds,
+            amounts: values,
+            getWallet: this.getWalletOrNew,
+            setWallet: this.setWallet,
+        });
     }
 
     withdrawEther(address: Address, amount: bigint): Voucher {
-        // normalize address
-        address = getAddress(address);
-
-        const wallet = this.wallets.get(address);
-
-        if (!wallet) {
-            throw new Error(`wallet of user ${address} is undefined`);
-        }
-
-        // check if dapp address is defined
-        if (!this.dapp) {
-            throw new Error(`undefined application address`);
-        }
-
-        // check balance
-        if (wallet.ether < amount) {
-            throw new Error(
-                `insufficient balance of user ${address}: ${amount.toString()} > ${wallet.ether.toString()}`,
-            );
-        }
-
-        // reduce balance right away
-        wallet.ether = wallet.ether - amount;
-
-        // create voucher
-        const call = encodeFunctionData({
-            abi: cartesiDAppAbi,
-            functionName: "withdrawEther",
-            args: [address, amount],
+        const handler = TokenHandler.getInstance();
+        return handler.ether.withdraw({
+            address,
+            getWallet: this.getWalletOrNew,
+            amount,
+            getDapp: this.getDappAddressOrThrow,
+            setWallet: this.setWallet,
         });
-        return {
-            destination: this.dapp, // dapp Address
-            payload: call,
-        };
     }
 
     withdrawERC20(token: Address, address: Address, amount: bigint): Voucher {
-        // normalize addresses
-        token = getAddress(token);
-        address = getAddress(address);
-
-        const wallet = this.wallets.get(address);
-
-        if (!wallet) {
-            throw new Error(`wallet of user ${address} is undefined`);
-        }
-
-        const balance = wallet?.erc20.get(token);
-
-        // check balance
-        if (!balance || balance < amount) {
-            throw new Error(
-                `insufficient balance of user ${address} of token ${token}: ${amount.toString()} > ${
-                    balance?.toString() ?? "0"
-                }`,
-            );
-        }
-
-        // reduce balance right away
-        wallet.erc20.set(token, balance - amount);
-
-        const call = encodeFunctionData({
-            abi: erc20Abi,
-            functionName: "transfer",
-            args: [address, amount],
+        const handler = TokenHandler.getInstance();
+        return handler.erc20.withdraw({
+            token,
+            address,
+            amount,
+            getWallet: this.getWalletOrNew,
         });
-
-        // create voucher to the ERC-20 transfer
-        return {
-            destination: token,
-            payload: call,
-        };
     }
 
     withdrawERC721(token: Address, address: Address, tokenId: bigint): Voucher {
-        token = getAddress(token);
-        address = getAddress(address);
-
-        const wallet = this.wallets.get(address);
-
-        if (!wallet) {
-            throw new Error(`wallet of user ${address} is undefined`);
-        }
-
-        const collection = wallet?.erc721.get(token);
-        if (!collection) {
-            throw new Error(
-                `insufficient balance of user ${address} of token ${token}`,
-            );
-        }
-        if (!collection.has(tokenId)) {
-            throw new Error(
-                `insufficient balance of user ${address} of token ${token} id ${tokenId}`,
-            );
-        }
-        const dappAddress = this.getDappAddressOrThrow();
-
-        collection.delete(tokenId);
-        const call = encodeFunctionData({
-            abi: erc721Abi,
-            functionName: "safeTransferFrom",
-            args: [dappAddress, address, tokenId],
+        const handler = TokenHandler.getInstance();
+        return handler.erc721.withdraw({
+            token,
+            address,
+            tokenId,
+            getWallet: this.getWalletOrNew,
+            setWallet: this.setWallet,
+            getDapp: this.getDappAddressOrThrow,
         });
-        return {
-            destination: token,
-            payload: call,
-        };
     }
 
     getDappAddressOrThrow = (): Address => {
@@ -502,88 +320,34 @@ export class WalletAppImpl implements WalletApp {
         token: Address,
         address: Address,
         tokenIds: bigint | bigint[],
-        values: bigint | bigint[],
+        amounts: bigint | bigint[],
     ): Voucher {
-        if (!isSameType(tokenIds, values)) {
-            throw new Error(
-                "tokenIds and values must be arrays or bigints both",
-            );
+        const handler = TokenHandler.getInstance();
+        if (!Array.isArray(tokenIds) && !Array.isArray(amounts)) {
+            return handler.erc1155Single.withdraw({
+                token,
+                address,
+                tokenId: tokenIds,
+                amount: amounts,
+                getWallet: this.getWalletOrNew,
+                getDapp: this.getDappAddressOrThrow,
+            });
         }
 
         if (!Array.isArray(tokenIds)) {
             tokenIds = [tokenIds];
         }
 
-        if (!Array.isArray(values)) {
-            values = [values];
+        if (!Array.isArray(amounts)) {
+            amounts = [amounts];
         }
 
-        if (!tokenIds.length || !values.length) {
-            throw new Error("tokenIds and values must not be empty");
-        }
-
-        if (tokenIds.length !== values.length) {
-            throw new Error(
-                `tokenIds(size: ${tokenIds.length})) and values(size: ${values.length}) must have the same length`,
-            );
-        }
-
-        // normalize addresses
-        token = getAddress(token);
-        address = getAddress(address);
-
-        const wallet = this.getWalletOrNew(address);
-        let nfts = wallet.erc1155.get(token);
-
-        if (!nfts) {
-            nfts = new Map();
-            wallet.erc1155.set(token, nfts);
-        }
-
-        // check balance
-        for (let i = 0; i < tokenIds.length; i++) {
-            const tokenId = tokenIds[i];
-            const value = values[i];
-            if (value < 0n) {
-                throw new Error(
-                    `negative value for tokenId ${tokenId}: ${value}`,
-                );
-            }
-            const balance = nfts.get(tokenId) ?? 0n;
-            if (balance < value) {
-                throw new Error(
-                    `insufficient balance of user ${address} of token ${token} of tokenId ${tokenId}: ${value.toString()} > ${
-                        balance.toString() ?? "0"
-                    }`,
-                );
-            }
-        }
-
-        for (let i = 0; i < tokenIds.length; i++) {
-            const tokenId = tokenIds[i];
-            const value = values[i];
-            const balance = nfts.get(tokenId) ?? 0n;
-            nfts.set(tokenId, balance - value);
-        }
-
-        const dappAddress = this.getDappAddressOrThrow();
-        let call = encodeFunctionData({
-            abi: erc1155Abi,
-            functionName: "safeBatchTransferFrom",
-            args: [dappAddress, address, tokenIds, values, "0x"],
+        return handler.erc1155Batch.withdraw({
+            token,
+            address,
+            tokenIds,
+            amounts,
+            getWallet: this.getWalletOrNew,
         });
-
-        if (tokenIds.length === 1 && values.length === 1) {
-            call = encodeFunctionData({
-                abi: erc1155Abi,
-                functionName: "safeTransferFrom",
-                args: [dappAddress, address, tokenIds[0], values[0], "0x"],
-            });
-        }
-
-        return {
-            destination: token,
-            payload: call,
-        };
     }
 }
