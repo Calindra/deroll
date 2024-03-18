@@ -627,7 +627,33 @@ describe("Wallet", () => {
             expect(call).toThrowError();
         });
 
-        test.todo("withdraw ETH with undefined portal address", () => {});
+        test.todo("withdraw ETH with undefined portal address", () => {
+            // Deposit
+            const wallet = createWallet();
+            const address = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
+            const amount = 123456n;
+
+            const metadata = {
+                msg_sender: etherPortalAddress,
+                block_number: 0,
+                epoch_index: 0,
+                input_index: 0,
+                timestamp: 0,
+            };
+
+            const payload = encodePacked(
+                ["address", "uint256"],
+                [address, amount],
+            );
+
+            const handler = () => wallet.handler({ metadata, payload });
+            expect(handler()).resolves.toEqual("accept");
+            expect(wallet.balanceOf(address)).toEqual(amount);
+
+            // Withdraw
+            const call = wallet.withdrawEther(address, amount);
+            expect(call).toThrowError();
+        });
 
         test("withdraw ETH", () => {
             // Deposit
