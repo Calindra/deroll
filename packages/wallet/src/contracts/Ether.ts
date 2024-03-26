@@ -1,4 +1,3 @@
-import { MissingContextArgumentError } from "../errors";
 import {
     getAddress,
     type Address,
@@ -6,8 +5,9 @@ import {
     isAddress,
     encodeFunctionData,
 } from "viem";
-import { cartesiDAppAbi, etherPortalAddress } from "../rollups";
 import type { Voucher } from "@deroll/app";
+import { MissingContextArgumentError } from "../errors";
+import { cartesiDAppAbi, etherPortalAddress } from "../rollups";
 import { parseEtherDeposit } from "..";
 import { TokenOperation, TokenContext } from "../token";
 
@@ -116,8 +116,6 @@ export class Ether implements TokenOperation {
         setWallet,
         getWallet,
     }: TokenContext): Promise<void> {
-        console.log("Ether data");
-
         if (!payload || !isHex(payload) || !getWallet || !setWallet) {
             throw new MissingContextArgumentError<TokenContext>({
                 payload,
@@ -126,7 +124,6 @@ export class Ether implements TokenOperation {
             });
         }
 
-        console.log("etherPortalAddress");
         const { sender, value } = parseEtherDeposit(payload);
         const wallet = getWallet(sender);
         wallet.ether += value;

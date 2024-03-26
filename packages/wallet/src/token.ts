@@ -1,13 +1,13 @@
+import { type Address, type Hex, getAddress } from "viem";
 import { isValidAdvanceRequestData } from "./util";
 import { InvalidPayloadError } from "./errors";
-import { getAddress, type Address, type Hex } from "viem";
 import type { Wallet } from "./wallet";
 import {
-    Ether,
+    ERC1155Batch,
+    ERC1155Single,
     ERC20,
     ERC721,
-    ERC1155Single,
-    ERC1155Batch,
+    Ether,
     Relay,
 } from "./contracts";
 

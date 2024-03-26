@@ -1,4 +1,3 @@
-import { MissingContextArgumentError } from "../errors";
 import {
     type Address,
     isHex,
@@ -6,10 +5,11 @@ import {
     isAddress,
     encodeFunctionData,
 } from "viem";
+import type { Voucher } from "@deroll/app";
+import { MissingContextArgumentError } from "../errors";
 import { erc1155Abi, erc1155SinglePortalAddress } from "../rollups";
 import { parseERC1155SingleDeposit } from "..";
 import { TokenOperation, TokenContext } from "../token";
-import type { Voucher } from "@deroll/app";
 
 export class ERC1155Single implements TokenOperation {
     balanceOf({ address, tokenId, getWallet, owner }: TokenContext): bigint {
@@ -179,8 +179,6 @@ export class ERC1155Single implements TokenOperation {
         setWallet,
         getWallet,
     }: TokenContext): Promise<void> {
-        console.log("ERC-1155 single");
-
         if (!payload || !isHex(payload) || !getWallet || !setWallet) {
             throw new MissingContextArgumentError<TokenContext>({
                 payload,

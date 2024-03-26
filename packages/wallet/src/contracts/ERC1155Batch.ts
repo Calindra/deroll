@@ -1,9 +1,9 @@
-import { MissingContextArgumentError } from "../errors";
 import { type Address, isHex, getAddress, isAddress, encodeFunctionData } from "viem";
+import { Voucher } from "@deroll/app";
+import { MissingContextArgumentError } from "../errors";
 import { erc1155Abi, erc1155BatchPortalAddress } from "../rollups";
 import { parseERC1155BatchDeposit } from "..";
 import { TokenOperation, TokenContext } from "../token";
-import { Voucher } from "@deroll/app";
 
 export class ERC1155Batch implements TokenOperation {
     balanceOf({
@@ -229,8 +229,6 @@ export class ERC1155Batch implements TokenOperation {
         setWallet,
         getWallet,
     }: TokenContext): Promise<void> {
-        console.log("ERC-1155 batch");
-
         if (!payload || !isHex(payload) || !getWallet || !setWallet) {
             throw new MissingContextArgumentError<TokenContext>({
                 payload,

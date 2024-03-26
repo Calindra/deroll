@@ -1,4 +1,3 @@
-import { MissingContextArgumentError } from "../errors";
 import {
     getAddress,
     type Address,
@@ -7,8 +6,9 @@ import {
     encodeFunctionData,
     erc20Abi
 } from "viem";
-import { erc20PortalAddress } from "../rollups";
 import type { Voucher } from "@deroll/app";
+import { MissingContextArgumentError } from "../errors";
+import { erc20PortalAddress } from "../rollups";
 import { parseERC20Deposit } from "..";
 import { TokenOperation, TokenContext } from "../token";
 
@@ -122,8 +122,6 @@ export class ERC20 implements TokenOperation {
     async deposit({
         payload, getWallet, setWallet,
     }: TokenContext): Promise<void> {
-        console.log("ERC-20 data");
-
         if (!payload || !isHex(payload) || !getWallet || !setWallet) {
             throw new MissingContextArgumentError<TokenContext>({
                 payload,

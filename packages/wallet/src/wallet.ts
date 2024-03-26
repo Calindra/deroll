@@ -1,7 +1,7 @@
-import { AdvanceRequestHandler, Voucher } from "@deroll/app";
-import { Address, getAddress, isAddress } from "viem";
-
 import { inspect } from "node:util";
+import { Address, getAddress, isAddress } from "viem";
+import { AdvanceRequestHandler, Voucher } from "@deroll/app";
+
 import { TokenHandler } from "./token";
 
 export type Wallet = {
@@ -165,8 +165,6 @@ export class WalletAppImpl implements WalletApp {
 
     public handler: AdvanceRequestHandler = async (data) => {
         try {
-            console.log("Wallet handler...", inspect(data, { depth: null }));
-
             const tokenHandler = TokenHandler.getInstance();
             const handler = tokenHandler.findDeposit(data);
             if (handler) {
@@ -180,10 +178,9 @@ export class WalletAppImpl implements WalletApp {
                 return "accept";
             }
         } catch (e) {
-            console.log("Error", e);
+            console.error("Error", e);
         }
 
-        console.log("Wallet handler reject");
         // Otherwise, reject
         return "reject";
     };
