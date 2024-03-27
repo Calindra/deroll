@@ -10,7 +10,7 @@ import {
     relay,
 } from "./contracts";
 
-import { tokenHandler } from "./token";
+import { depositHandler } from "./token";
 
 export type Wallet = {
     ether: bigint;
@@ -197,7 +197,7 @@ export class WalletAppImpl implements WalletApp {
 
     public handler: AdvanceRequestHandler = async (data) => {
         try {
-            const handler = tokenHandler.findDeposit(data);
+            const handler = depositHandler.findDeposit(data);
             if (handler) {
                 await handler.deposit({
                     setDapp: this.setDapp,

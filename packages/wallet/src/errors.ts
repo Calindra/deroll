@@ -6,16 +6,6 @@ export class InvalidPayloadError extends Error {
     }
 }
 
-export class MissingContextArgumentError<T extends object> extends Error {
-    constructor(obj: T) {
-        const missingKeys = Object.keys(obj).filter(
-            (key) => obj[key as keyof T] === undefined,
-        );
-        super(`Missing context argument: ${missingKeys.join(", ")}`);
-    }
-}
-
-
 /**
  * @todo withdraw and transfer when throw error specific
  */

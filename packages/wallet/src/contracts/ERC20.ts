@@ -7,19 +7,35 @@ import {
     erc20Abi,
 } from "viem";
 import type { Voucher } from "@deroll/app";
-import { MissingContextArgumentError } from "../errors";
 import { erc20PortalAddress } from "../rollups";
 import { parseERC20Deposit } from "..";
-import { TokenOperation, TokenContext } from "../token";
+import { DepositArgs, DepositOperation } from "../token";
+import { Wallet } from "../wallet";
 
-export class ERC20 implements TokenOperation {
-    balanceOf({ address, getWallet, tokenOrAddress }: TokenContext): bigint {
-        if (!address || !getWallet || !tokenOrAddress)
-            throw new MissingContextArgumentError<TokenContext>({
-                address,
-                getWallet,
-                tokenOrAddress,
-            });
+interface BalanceOf {
+    address: string;
+    getWallet(address: string): Wallet;
+    tokenOrAddress: string;
+}
+
+interface Transfer {
+    token: Address;
+    from: Address;
+    to: Address;
+    amount: bigint;
+    getWallet(address: Address): Wallet;
+    setWallet(address: Address, wallet: Wallet): void;
+}
+
+interface Withdraw {
+    token: Address;
+    address: Address;
+    getWallet(address: Address): Wallet;
+    amount: bigint;
+}
+
+export class ERC20 implements DepositOperation {
+    balanceOf({ address, getWallet, tokenOrAddress }: BalanceOf): bigint {
         const addr = getAddress(address);
 
         const erc20address = getAddress(tokenOrAddress);
@@ -34,17 +50,7 @@ export class ERC20 implements TokenOperation {
         amount,
         getWallet,
         setWallet,
-    }: TokenContext): void {
-        if (!token || !from || !to || !amount || !getWallet || !setWallet)
-            throw new MissingContextArgumentError<TokenContext>({
-                token,
-                from,
-                to,
-                amount,
-                getWallet,
-                setWallet,
-            });
-
+    }: Transfer): void {
         // normalize addresses
         if (isAddress(from)) {
             from = getAddress(from);
@@ -78,16 +84,7 @@ export class ERC20 implements TokenOperation {
         setWallet(from as Address, walletFrom);
         setWallet(to as Address, walletTo);
     }
-    withdraw({ token, address, getWallet, amount }: TokenContext): Voucher {
-        if (!token || !address || !getWallet || !amount) {
-            throw new MissingContextArgumentError<TokenContext>({
-                token,
-                address,
-                getWallet,
-                amount,
-            });
-        }
-
+    withdraw({ token, address, getWallet, amount }: Withdraw): Voucher {
         // normalize addresses
         token = getAddress(token);
         address = getAddress(address);
@@ -128,15 +125,7 @@ export class ERC20 implements TokenOperation {
         payload,
         getWallet,
         setWallet,
-    }: TokenContext): Promise<void> {
-        if (!payload || !isHex(payload) || !getWallet || !setWallet) {
-            throw new MissingContextArgumentError<TokenContext>({
-                payload,
-                getWallet,
-                setWallet,
-            });
-        }
-
+    }: DepositArgs): Promise<void> {
         const { success, token, sender, amount } = parseERC20Deposit(payload);
         if (success) {
             const wallet = getWallet(sender);

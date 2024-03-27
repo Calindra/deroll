@@ -6,27 +6,39 @@ import {
     encodeFunctionData,
 } from "viem";
 import type { Voucher } from "@deroll/app";
-import { MissingContextArgumentError } from "../errors";
 import { erc1155Abi, erc1155SinglePortalAddress } from "../rollups";
 import { parseERC1155SingleDeposit } from "..";
-import { TokenOperation, TokenContext } from "../token";
+import { DepositArgs, DepositOperation } from "../token";
+import type { Wallet } from "../wallet";
 
-export class ERC1155Single implements TokenOperation {
-    balanceOf({
-        address,
-        tokenId,
-        getWallet,
-        owner,
-    }: TokenContext): bigint {
-        if (!address || !tokenId || !getWallet || !owner) {
-            throw new MissingContextArgumentError<TokenContext>({
-                getWallet,
-                address,
-                tokenId,
-                owner,
-            });
-        }
+interface BalanceOf {
+    address: string;
+    tokenId: bigint;
+    owner: string;
+    getWallet(address: string): Wallet;
+}
 
+interface Transfer {
+    from: Address;
+    to: Address;
+    getWallet(address: Address): Wallet;
+    setWallet(address: Address, wallet: Wallet): void;
+    token: Address;
+    tokenId: bigint;
+    amount: bigint;
+}
+
+interface Withdraw {
+    token: Address;
+    address: Address;
+    getWallet(address: Address): Wallet;
+    getDapp(): Address;
+    tokenId: bigint;
+    amount: bigint;
+}
+
+export class ERC1155Single implements DepositOperation {
+    balanceOf({ address, tokenId, getWallet, owner }: BalanceOf): bigint {
         const ownerAddress = getAddress(owner);
         const wallet = getWallet(ownerAddress);
 
@@ -47,27 +59,7 @@ export class ERC1155Single implements TokenOperation {
         tokenId,
         amount,
         setWallet,
-    }: TokenContext): void {
-        if (
-            !token ||
-            !from ||
-            !to ||
-            !tokenId ||
-            !getWallet ||
-            !amount ||
-            !setWallet
-        ) {
-            throw new MissingContextArgumentError<TokenContext>({
-                token,
-                from,
-                to,
-                tokenId,
-                getWallet,
-                amount,
-                setWallet,
-            });
-        }
-
+    }: Transfer): void {
         if (isAddress(from)) {
             from = getAddress(from);
         }
@@ -120,25 +112,7 @@ export class ERC1155Single implements TokenOperation {
         token,
         address,
         getDapp,
-    }: TokenContext): Voucher {
-        if (
-            !tokenId ||
-            !amount ||
-            !token ||
-            !address ||
-            !getWallet ||
-            !getDapp
-        ) {
-            throw new MissingContextArgumentError<TokenContext>({
-                tokenId,
-                amount,
-                token,
-                address,
-                getWallet,
-                getDapp,
-            });
-        }
-
+    }: Withdraw): Voucher {
         // normalize addresses
         token = getAddress(token);
         address = getAddress(address);
@@ -183,15 +157,7 @@ export class ERC1155Single implements TokenOperation {
         payload,
         setWallet,
         getWallet,
-    }: TokenContext): Promise<void> {
-        if (!payload || !isHex(payload) || !getWallet || !setWallet) {
-            throw new MissingContextArgumentError<TokenContext>({
-                payload,
-                getWallet,
-                setWallet,
-            });
-        }
-
+    }: DepositArgs): Promise<void> {
         const { tokenId, sender, token, value } =
             parseERC1155SingleDeposit(payload);
 

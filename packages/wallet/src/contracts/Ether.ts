@@ -6,19 +6,33 @@ import {
     encodeFunctionData,
 } from "viem";
 import type { Voucher } from "@deroll/app";
-import { MissingContextArgumentError } from "../errors";
 import { cartesiDAppAbi, etherPortalAddress } from "../rollups";
 import { parseEtherDeposit } from "..";
-import { TokenOperation, TokenContext } from "../token";
+import { DepositArgs, DepositOperation } from "../token";
+import { Wallet } from "../wallet";
 
-export class Ether implements TokenOperation {
-    balanceOf({ tokenOrAddress, getWallet }: TokenContext): bigint {
-        if (!tokenOrAddress || !getWallet)
-            throw new MissingContextArgumentError<TokenContext>({
-                tokenOrAddress,
-                getWallet,
-            });
+interface BalanceOf {
+    tokenOrAddress: string;
+    getWallet(address: string): Wallet;
+}
 
+interface Transfer {
+    from: Address;
+    to: Address;
+    amount: bigint;
+    getWallet(address: Address): Wallet;
+    setWallet(address: Address, wallet: Wallet): void;
+}
+
+interface Withdraw {
+    address: Address;
+    amount: bigint;
+    getWallet(address: Address): Wallet;
+    getDapp(): Address;
+}
+
+export class Ether implements DepositOperation {
+    balanceOf({ tokenOrAddress, getWallet }: BalanceOf): bigint {
         if (isAddress(tokenOrAddress)) {
             tokenOrAddress = getAddress(tokenOrAddress);
         }
@@ -28,17 +42,7 @@ export class Ether implements TokenOperation {
         // ether balance
         return wallet?.ether ?? 0n;
     }
-    transfer({ getWallet, from, to, amount, setWallet }: TokenContext): void {
-        if (!from || !to || !amount || !getWallet || !setWallet) {
-            throw new MissingContextArgumentError<TokenContext>({
-                from,
-                to,
-                amount,
-                getWallet,
-                setWallet,
-            });
-        }
-
+    transfer({ getWallet, from, to, amount, setWallet }: Transfer): void {
         const walletFrom = getWallet(from);
         const walletTo = getWallet(to);
 
@@ -51,23 +55,7 @@ export class Ether implements TokenOperation {
         setWallet(from as Address, walletFrom);
         setWallet(to as Address, walletTo);
     }
-    withdraw({
-        address,
-        setWallet,
-        getWallet,
-        amount,
-        getDapp,
-    }: TokenContext): Voucher {
-        if (!address || !setWallet || !getWallet || !amount || !getDapp) {
-            throw new MissingContextArgumentError<TokenContext>({
-                address,
-                setWallet,
-                getWallet,
-                amount,
-                getDapp,
-            });
-        }
-
+    withdraw({ address, getWallet, amount, getDapp }: Withdraw): Voucher {
         // normalize address
         address = getAddress(address);
 
@@ -112,15 +100,7 @@ export class Ether implements TokenOperation {
         payload,
         setWallet,
         getWallet,
-    }: TokenContext): Promise<void> {
-        if (!payload || !isHex(payload) || !getWallet || !setWallet) {
-            throw new MissingContextArgumentError<TokenContext>({
-                payload,
-                getWallet,
-                setWallet,
-            });
-        }
-
+    }: DepositArgs): Promise<void> {
         const { sender, value } = parseEtherDeposit(payload);
         const wallet = getWallet(sender);
         wallet.ether += value;

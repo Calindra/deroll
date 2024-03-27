@@ -7,21 +7,37 @@ import {
     erc721Abi,
 } from "viem";
 import type { Voucher } from "@deroll/app";
-import { MissingContextArgumentError } from "../errors";
 import { erc721PortalAddress } from "../rollups";
 import { parseERC721Deposit } from "..";
-import { TokenOperation, TokenContext } from "../token";
+import { DepositArgs, DepositOperation } from "../token";
+import { Wallet } from "../wallet";
 
-export class ERC721 implements TokenOperation {
-    balanceOf({ owner, getWallet, address }: TokenContext): bigint {
-        if (!getWallet || !owner || !address) {
-            throw new MissingContextArgumentError<TokenContext>({
-                getWallet,
-                owner,
-                address,
-            });
-        }
+interface BalanceOf {
+    owner: Address;
+    getWallet(address: Address): Wallet;
+    address: Address;
+}
 
+interface Transfer {
+    from: Address;
+    to: Address;
+    getWallet(address: Address): Wallet;
+    setWallet(address: Address, wallet: Wallet): void;
+    token: Address;
+    tokenId: bigint;
+}
+
+interface Withdraw {
+    token: Address;
+    address: Address;
+    getWallet(address: Address): Wallet;
+    setWallet(address: Address, wallet: Wallet): void;
+    tokenId: bigint;
+    getDapp(): Address;
+}
+
+export class ERC721 implements DepositOperation {
+    balanceOf({ owner, getWallet, address }: BalanceOf): bigint {
         const ownerAddress = getAddress(owner);
         const wallet = getWallet(ownerAddress);
         if (isAddress(address)) {
@@ -37,15 +53,7 @@ export class ERC721 implements TokenOperation {
         setWallet,
         token,
         tokenId,
-    }: TokenContext): void {
-        if (!from || !to || !getWallet || !setWallet || !token || !tokenId) {
-            throw new MissingContextArgumentError<TokenContext>({
-                from,
-                to,
-                getWallet,
-            });
-        }
-
+    }: Transfer): void {
         // normalize addresses
         if (isAddress(from)) {
             from = getAddress(from);
@@ -86,28 +94,9 @@ export class ERC721 implements TokenOperation {
         token,
         address,
         getWallet,
-        setWallet,
         tokenId,
         getDapp,
-    }: TokenContext): Voucher {
-        if (
-            !token ||
-            !address ||
-            !getWallet ||
-            !setWallet ||
-            !tokenId ||
-            !getDapp
-        ) {
-            throw new MissingContextArgumentError<TokenContext>({
-                token,
-                address,
-                getWallet,
-                setWallet,
-                tokenId,
-                getDapp,
-            });
-        }
-
+    }: Withdraw): Voucher {
         token = getAddress(token);
         address = getAddress(address);
 
@@ -145,15 +134,7 @@ export class ERC721 implements TokenOperation {
         payload,
         setWallet,
         getWallet,
-    }: TokenContext): Promise<void> {
-        if (!payload || !isHex(payload) || !setWallet || !getWallet) {
-            throw new MissingContextArgumentError<TokenContext>({
-                payload,
-                setWallet,
-                getWallet,
-            });
-        }
-
+    }: DepositArgs): Promise<void> {
         const { token, sender, tokenId } = parseERC721Deposit(payload);
 
         const wallet = getWallet(sender);

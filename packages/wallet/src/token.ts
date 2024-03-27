@@ -11,26 +11,6 @@ import {
     relay,
 } from "./contracts";
 
-export type TokenContext = Partial<{
-    address: string;
-    addresses: string[];
-    tokenIds: bigint[];
-    tokenId: bigint;
-    token: Address;
-    from: string;
-    to: string;
-    owner: string;
-    amount: bigint;
-    amounts: bigint[];
-    tokenOrAddress: string;
-    recipient: Address;
-    payload: Hex;
-    getDapp(): Address;
-    setDapp(address: Address): void;
-    getWallet(address: string): Wallet;
-    setWallet(address: Address, wallet: Wallet): void;
-}>;
-
 export interface DepositArgs {
     setDapp(address: Address): void;
     payload: Hex;
@@ -38,14 +18,13 @@ export interface DepositArgs {
     setWallet(address: Address, wallet: Wallet): void;
 }
 
-export interface TokenOperation {
+export interface DepositOperation {
     isDeposit(msgSender: Address): boolean;
     deposit(context: DepositArgs): Promise<void>;
 }
 
-class TokenHandler {
-    private static instance: TokenHandler;
-    private readonly handlers: Readonly<TokenOperation>[] = [
+class DepositHandler {
+    private readonly handlers: Readonly<DepositOperation>[] = [
         ether,
         erc20,
         erc721,
@@ -60,7 +39,7 @@ class TokenHandler {
      * @returns
      * @throws if data is invalid
      */
-    public findDeposit(data: unknown): TokenOperation | undefined {
+    public findDeposit(data: unknown): DepositOperation | undefined {
         if (!isValidAdvanceRequestData(data)) {
             throw new InvalidPayloadError(data);
         }
@@ -75,4 +54,4 @@ class TokenHandler {
     }
 }
 
-export const tokenHandler = new TokenHandler();
+export const depositHandler = new DepositHandler();

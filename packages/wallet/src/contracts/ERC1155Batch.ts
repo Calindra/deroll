@@ -6,26 +6,39 @@ import {
     encodeFunctionData,
 } from "viem";
 import { Voucher } from "@deroll/app";
-import { MissingContextArgumentError } from "../errors";
 import { erc1155Abi, erc1155BatchPortalAddress } from "../rollups";
 import { parseERC1155BatchDeposit } from "..";
-import { TokenOperation, TokenContext } from "../token";
+import { DepositArgs, DepositOperation } from "../token";
+import { Wallet } from "../wallet";
 
-export class ERC1155Batch implements TokenOperation {
-    balanceOf({
-        addresses,
-        tokenIds,
-        owner,
-        getWallet,
-    }: TokenContext): bigint[] {
-        if (!addresses || !tokenIds || !getWallet || !owner) {
-            throw new MissingContextArgumentError<TokenContext>({
-                addresses,
-                tokenIds,
-                getWallet,
-            });
-        }
+interface BalanceOf {
+    addresses: string[];
+    tokenIds: bigint[];
+    owner: string;
+    getWallet(address: string): Wallet;
+}
 
+interface Transfer {
+    tokenIds: bigint[];
+    amounts: bigint[];
+    from: Address;
+    to: Address;
+    getWallet(address: Address): Wallet;
+    setWallet(address: Address, wallet: Wallet): void;
+    token: Address;
+}
+
+interface Withdraw {
+    tokenIds: bigint[];
+    amounts: bigint[];
+    token: Address;
+    address: Address;
+    getWallet(address: Address): Wallet;
+    getDapp(): Address;
+}
+
+export class ERC1155Batch implements DepositOperation {
+    balanceOf({ addresses, tokenIds, owner, getWallet }: BalanceOf): bigint[] {
         if (addresses.length !== tokenIds.length) {
             throw new Error("addresses and tokenIds must have the same length");
         }
@@ -57,27 +70,7 @@ export class ERC1155Batch implements TokenOperation {
         getWallet,
         setWallet,
         token,
-    }: TokenContext): void {
-        if (
-            !tokenIds ||
-            !amounts ||
-            !from ||
-            !to ||
-            !setWallet ||
-            !getWallet ||
-            !token
-        ) {
-            throw new MissingContextArgumentError<TokenContext>({
-                tokenIds,
-                amounts,
-                from,
-                to,
-                getWallet,
-                setWallet,
-                token,
-            });
-        }
-
+    }: Transfer): void {
         if (tokenIds.length !== amounts.length) {
             throw new Error("tokenIds and values must have the same length");
         }
@@ -150,25 +143,7 @@ export class ERC1155Batch implements TokenOperation {
         token,
         address,
         getDapp,
-    }: TokenContext): Voucher {
-        if (
-            !tokenIds ||
-            !amounts ||
-            !token ||
-            !address ||
-            !getWallet ||
-            !getDapp
-        ) {
-            throw new MissingContextArgumentError<TokenContext>({
-                tokenIds,
-                amounts,
-                token,
-                address,
-                getWallet,
-                getDapp,
-            });
-        }
-
+    }: Withdraw): Voucher {
         if (!tokenIds.length || !amounts.length) {
             throw new Error("tokenIds and values must not be empty");
         }
@@ -247,15 +222,7 @@ export class ERC1155Batch implements TokenOperation {
         payload,
         setWallet,
         getWallet,
-    }: TokenContext): Promise<void> {
-        if (!payload || !isHex(payload) || !getWallet || !setWallet) {
-            throw new MissingContextArgumentError<TokenContext>({
-                payload,
-                getWallet,
-                setWallet,
-            });
-        }
-
+    }: DepositArgs): Promise<void> {
         const { token, sender, tokenIds, values } =
             parseERC1155BatchDeposit(payload);
 
