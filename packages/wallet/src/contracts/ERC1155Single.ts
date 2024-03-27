@@ -12,7 +12,7 @@ import { DepositArgs, DepositOperation } from "../token";
 import type { Wallet } from "../wallet";
 
 interface BalanceOf {
-    address: string;
+    address: Address;
     tokenId: bigint;
     owner: string;
     getWallet(address: string): Wallet;
@@ -21,8 +21,8 @@ interface BalanceOf {
 interface Transfer {
     from: Address;
     to: Address;
-    getWallet(address: Address): Wallet;
-    setWallet(address: Address, wallet: Wallet): void;
+    getWallet(address: string): Wallet
+    setWallet(address: string, wallet: Wallet): void;
     token: Address;
     tokenId: bigint;
     amount: bigint;
@@ -31,7 +31,7 @@ interface Transfer {
 interface Withdraw {
     token: Address;
     address: Address;
-    getWallet(address: Address): Wallet;
+    getWallet(address: string): Wallet
     getDapp(): Address;
     tokenId: bigint;
     amount: bigint;
@@ -39,14 +39,10 @@ interface Withdraw {
 
 export class ERC1155Single implements DepositOperation {
     balanceOf({ address, tokenId, getWallet, owner }: BalanceOf): bigint {
-        const ownerAddress = getAddress(owner);
-        const wallet = getWallet(ownerAddress);
+        const wallet = getWallet(owner);
+        address = getAddress(address);
 
-        if (isAddress(address)) {
-            address = getAddress(address);
-        }
-
-        const collection = wallet.erc1155[address as Address];
+        const collection = wallet.erc1155[address];
         const balance = collection?.get(tokenId) ?? 0n;
 
         return balance;
@@ -60,6 +56,8 @@ export class ERC1155Single implements DepositOperation {
         amount,
         setWallet,
     }: Transfer): void {
+        token = getAddress(token);
+
         if (isAddress(from)) {
             from = getAddress(from);
         }
@@ -102,8 +100,8 @@ export class ERC1155Single implements DepositOperation {
         const item = nftsTo.get(tokenId) ?? 0n;
         nftsTo.set(tokenId, item + amount);
 
-        setWallet(from as Address, walletFrom);
-        setWallet(to as Address, walletTo);
+        setWallet(from, walletFrom);
+        setWallet(to, walletTo);
     }
     withdraw({
         getWallet,
@@ -145,7 +143,7 @@ export class ERC1155Single implements DepositOperation {
         const call = encodeFunctionData({
             abi: erc1155Abi,
             functionName: "safeTransferFrom",
-            args: [dappAddress, address as Address, tokenId, amount, "0x"],
+            args: [dappAddress, address, tokenId, amount, "0x"],
         });
 
         return {

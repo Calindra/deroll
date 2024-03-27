@@ -15,7 +15,7 @@ export interface DepositArgs {
     setDapp(address: Address): void;
     payload: Hex;
     getWallet(address: string): Wallet;
-    setWallet(address: Address, wallet: Wallet): void;
+    setWallet(address: string, wallet: Wallet): void;
 }
 
 export interface DepositOperation {

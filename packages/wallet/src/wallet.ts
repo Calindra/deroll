@@ -1,22 +1,15 @@
 import { Address, getAddress, isAddress } from "viem";
 import { AdvanceRequestHandler, Voucher } from "@deroll/app";
 
-import {
-    ether,
-    erc20,
-    erc721,
-    erc1155Single,
-    erc1155Batch,
-    relay,
-} from "./contracts";
+import { ether, erc20, erc721, erc1155Single, erc1155Batch } from "./contracts";
 
 import { depositHandler } from "./token";
 
 export type Wallet = {
     ether: bigint;
-    erc20: Record<Address, bigint>;
-    erc721: Record<Address, Set<bigint>>;
-    erc1155: Record<Address, Map<bigint, bigint>>;
+    erc20: Record<string, bigint>;
+    erc721: Record<string, Set<bigint>>;
+    erc1155: Record<string, Map<bigint, bigint>>;
 };
 
 export interface WalletApp {
@@ -66,7 +59,6 @@ export interface WalletApp {
         tokenIds: bigint | bigint[],
         values: bigint | bigint[],
     ): Voucher;
-    toJSON(): string;
 }
 
 export class WalletAppImpl implements WalletApp {
@@ -77,7 +69,7 @@ export class WalletAppImpl implements WalletApp {
     balanceOfEther(tokenOrAddress: string): bigint {
         return ether.balanceOf({
             getWallet: this.getWalletOrNew,
-            tokenOrAddress,
+            address: tokenOrAddress,
         });
     }
     balanceOfERC20(tokenOrAddress: Address, address: string): bigint {
@@ -90,9 +82,6 @@ export class WalletAppImpl implements WalletApp {
             getWallet: this.getWalletOrNew,
             tokenOrAddress,
         });
-    }
-    toJSON(): string {
-        throw new Error("Method not implemented.");
     }
     setDapp = (address: Address): void => {
         this.dapp = address;
@@ -132,6 +121,7 @@ export class WalletAppImpl implements WalletApp {
      * @param tokenOrAddress
      * @param address
      * @returns
+     * @deprecated use {@link balanceOfEther} or {@link balanceOfERC20} instead
      */
     public balanceOf(
         tokenOrAddress: string | Address,
@@ -146,15 +136,12 @@ export class WalletAppImpl implements WalletApp {
         } else {
             return ether.balanceOf({
                 getWallet: this.getWalletOrNew,
-                tokenOrAddress,
+                address: tokenOrAddress,
             });
         }
     }
 
-    public balanceOfERC721(
-        address: string | Address,
-        owner: string | Address,
-    ): bigint {
+    public balanceOfERC721(address: string | Address, owner: Address): bigint {
         return erc721.balanceOf({
             address,
             getWallet: this.getWalletOrNew,
@@ -163,7 +150,7 @@ export class WalletAppImpl implements WalletApp {
     }
 
     public balanceOfERC1155(
-        addresses: string | string[],
+        addresses: Address | Address[],
         tokenIds: bigint | bigint[],
         owner: string | Address,
     ): bigint | bigint[] {
@@ -223,14 +210,13 @@ export class WalletAppImpl implements WalletApp {
             amount,
             getWallet: this.getWalletOrNew,
             setWallet: this.setWallet,
-            getDapp: this.getDappAddressOrThrow,
         });
     }
 
     transferERC20(
         token: Address,
-        from: string,
-        to: string,
+        from: Address,
+        to: Address,
         amount: bigint,
     ): void {
         erc20.transfer({
@@ -245,8 +231,8 @@ export class WalletAppImpl implements WalletApp {
 
     transferERC721(
         token: Address,
-        from: string,
-        to: string,
+        from: Address,
+        to: Address,
         tokenId: bigint,
     ): void {
         erc721.transfer({
@@ -261,8 +247,8 @@ export class WalletAppImpl implements WalletApp {
 
     transferERC1155(
         token: Address,
-        from: string,
-        to: string,
+        from: Address,
+        to: Address,
         tokenIds: bigint[],
         values: bigint[],
     ): void {
@@ -303,7 +289,6 @@ export class WalletAppImpl implements WalletApp {
             getWallet: this.getWalletOrNew,
             amount,
             getDapp: this.getDappAddressOrThrow,
-            setWallet: this.setWallet,
         });
     }
 
@@ -367,6 +352,7 @@ export class WalletAppImpl implements WalletApp {
             tokenIds,
             amounts,
             getWallet: this.getWalletOrNew,
+            getDapp: this.getDappAddressOrThrow,
         });
     }
 }

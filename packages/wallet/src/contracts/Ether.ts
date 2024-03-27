@@ -12,32 +12,32 @@ import { DepositArgs, DepositOperation } from "../token";
 import { Wallet } from "../wallet";
 
 interface BalanceOf {
-    tokenOrAddress: string;
+    address: string;
     getWallet(address: string): Wallet;
 }
 
 interface Transfer {
-    from: Address;
-    to: Address;
+    from: string;
+    to: string;
     amount: bigint;
-    getWallet(address: Address): Wallet;
-    setWallet(address: Address, wallet: Wallet): void;
+    getWallet(address: string): Wallet;
+    setWallet(address: string, wallet: Wallet): void;
 }
 
 interface Withdraw {
     address: Address;
     amount: bigint;
-    getWallet(address: Address): Wallet;
+    getWallet(address: string): Wallet;
     getDapp(): Address;
 }
 
 export class Ether implements DepositOperation {
-    balanceOf({ tokenOrAddress, getWallet }: BalanceOf): bigint {
-        if (isAddress(tokenOrAddress)) {
-            tokenOrAddress = getAddress(tokenOrAddress);
+    balanceOf({ address, getWallet }: BalanceOf): bigint {
+        if (isAddress(address)) {
+            address = getAddress(address);
         }
 
-        const wallet = getWallet(tokenOrAddress as Address);
+        const wallet = getWallet(address);
 
         // ether balance
         return wallet?.ether ?? 0n;
@@ -52,8 +52,8 @@ export class Ether implements DepositOperation {
 
         walletFrom.ether = walletFrom.ether - amount;
         walletTo.ether = walletTo.ether + amount;
-        setWallet(from as Address, walletFrom);
-        setWallet(to as Address, walletTo);
+        setWallet(from, walletFrom);
+        setWallet(to, walletTo);
     }
     withdraw({ address, getWallet, amount, getDapp }: Withdraw): Voucher {
         // normalize address
@@ -86,7 +86,7 @@ export class Ether implements DepositOperation {
         const call = encodeFunctionData({
             abi: cartesiDAppAbi,
             functionName: "withdrawEther",
-            args: [address as Address, amount],
+            args: [address, amount],
         });
         return {
             destination: dapp, // dapp Address

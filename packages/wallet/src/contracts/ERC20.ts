@@ -20,17 +20,17 @@ interface BalanceOf {
 
 interface Transfer {
     token: Address;
-    from: Address;
-    to: Address;
+    from: string;
+    to: string;
     amount: bigint;
-    getWallet(address: Address): Wallet;
-    setWallet(address: Address, wallet: Wallet): void;
+    getWallet(address: string): Wallet;
+    setWallet(address: string, wallet: Wallet): void;
 }
 
 interface Withdraw {
     token: Address;
     address: Address;
-    getWallet(address: Address): Wallet;
+    getWallet(address: string): Wallet;
     amount: bigint;
 }
 
@@ -52,6 +52,8 @@ export class ERC20 implements DepositOperation {
         setWallet,
     }: Transfer): void {
         // normalize addresses
+        token = getAddress(token);
+
         if (isAddress(from)) {
             from = getAddress(from);
         }
@@ -81,8 +83,8 @@ export class ERC20 implements DepositOperation {
             walletTo.erc20[token] = amount;
         }
 
-        setWallet(from as Address, walletFrom);
-        setWallet(to as Address, walletTo);
+        setWallet(from, walletFrom);
+        setWallet(to, walletTo);
     }
     withdraw({ token, address, getWallet, amount }: Withdraw): Voucher {
         // normalize addresses
@@ -112,7 +114,7 @@ export class ERC20 implements DepositOperation {
         const call = encodeFunctionData({
             abi: erc20Abi,
             functionName: "transfer",
-            args: [address as Address, amount],
+            args: [address, amount],
         });
 
         // create voucher to the ERC-20 transfer

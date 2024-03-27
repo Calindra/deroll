@@ -14,15 +14,15 @@ import { Wallet } from "../wallet";
 
 interface BalanceOf {
     owner: Address;
-    getWallet(address: Address): Wallet;
-    address: Address;
+    getWallet(address: string): Wallet
+    address: string;
 }
 
 interface Transfer {
     from: Address;
     to: Address;
-    getWallet(address: Address): Wallet;
-    setWallet(address: Address, wallet: Wallet): void;
+    getWallet(address: string): Wallet
+    setWallet(address: string, wallet: Wallet): void;
     token: Address;
     tokenId: bigint;
 }
@@ -30,8 +30,8 @@ interface Transfer {
 interface Withdraw {
     token: Address;
     address: Address;
-    getWallet(address: Address): Wallet;
-    setWallet(address: Address, wallet: Wallet): void;
+    getWallet(address: string): Wallet
+    setWallet(address: string, wallet: Wallet): void;
     tokenId: bigint;
     getDapp(): Address;
 }
@@ -43,7 +43,7 @@ export class ERC721 implements DepositOperation {
         if (isAddress(address)) {
             address = getAddress(address);
         }
-        const size = wallet.erc721[address as Address]?.size ?? 0n;
+        const size = wallet.erc721[address]?.size ?? 0n;
         return BigInt(size);
     }
     transfer({
@@ -54,6 +54,8 @@ export class ERC721 implements DepositOperation {
         token,
         tokenId,
     }: Transfer): void {
+        token = getAddress(token);
+
         // normalize addresses
         if (isAddress(from)) {
             from = getAddress(from);
@@ -87,8 +89,8 @@ export class ERC721 implements DepositOperation {
         balanceTo.add(tokenId);
         balance.delete(tokenId);
 
-        setWallet(from as Address, walletFrom);
-        setWallet(to as Address, walletTo);
+        setWallet(from, walletFrom);
+        setWallet(to, walletTo);
     }
     withdraw({
         token,
@@ -123,7 +125,7 @@ export class ERC721 implements DepositOperation {
         const call = encodeFunctionData({
             abi: erc721Abi,
             functionName: "safeTransferFrom",
-            args: [dappAddress, address as Address, tokenId],
+            args: [dappAddress, address, tokenId],
         });
         return {
             destination: token,

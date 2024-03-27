@@ -12,7 +12,7 @@ import { DepositArgs, DepositOperation } from "../token";
 import { Wallet } from "../wallet";
 
 interface BalanceOf {
-    addresses: string[];
+    addresses: Address[];
     tokenIds: bigint[];
     owner: string;
     getWallet(address: string): Wallet;
@@ -23,8 +23,8 @@ interface Transfer {
     amounts: bigint[];
     from: Address;
     to: Address;
-    getWallet(address: Address): Wallet;
-    setWallet(address: Address, wallet: Wallet): void;
+    getWallet(address: string): Wallet;
+    setWallet(address: string, wallet: Wallet): void;
     token: Address;
 }
 
@@ -33,7 +33,7 @@ interface Withdraw {
     amounts: bigint[];
     token: Address;
     address: Address;
-    getWallet(address: Address): Wallet;
+    getWallet(address: string): Wallet;
     getDapp(): Address;
 }
 
@@ -43,19 +43,15 @@ export class ERC1155Batch implements DepositOperation {
             throw new Error("addresses and tokenIds must have the same length");
         }
 
-        const ownerAddress = getAddress(owner);
-        const wallet = getWallet(ownerAddress);
+        const wallet = getWallet(owner);
         const balances: bigint[] = [];
 
         for (let i = 0; i < addresses.length; i++) {
-            let address = addresses[i];
-            if (isAddress(address)) {
-                address = getAddress(address);
-            }
+            let address = getAddress(addresses[i]);
 
             const tokenId = tokenIds[i];
 
-            const collection = wallet.erc1155[address as Address];
+            const collection = wallet.erc1155[address];
             const item = collection?.get(tokenId) ?? 0n;
             balances.push(item);
         }
@@ -75,6 +71,8 @@ export class ERC1155Batch implements DepositOperation {
             throw new Error("tokenIds and values must have the same length");
         }
 
+        token = getAddress(token);
+
         if (isAddress(from)) {
             from = getAddress(from);
         }
@@ -86,11 +84,7 @@ export class ERC1155Batch implements DepositOperation {
         const walletFrom = getWallet(from);
         const walletTo = getWallet(to);
 
-        let nfts = walletFrom.erc1155[token];
-        if (!nfts) {
-            nfts = new Map();
-            walletFrom.erc1155[token] = nfts;
-        }
+        const nfts = new Map(walletFrom.erc1155[token]);
 
         // check balance
         for (let i = 0; i < tokenIds.length; i++) {
@@ -111,14 +105,11 @@ export class ERC1155Batch implements DepositOperation {
                     }`,
                 );
             }
-        }
 
-        for (let i = 0; i < tokenIds.length; i++) {
-            const tokenId = tokenIds[i];
-            const amount = amounts[i];
-            const item = nfts.get(tokenId) ?? 0n;
             nfts.set(tokenId, item - amount);
         }
+
+        walletFrom.erc1155[token] = nfts;
 
         let nftsTo = walletTo.erc1155[token];
         if (!nftsTo) {
@@ -133,8 +124,8 @@ export class ERC1155Batch implements DepositOperation {
             nftsTo.set(tokenId, item + value);
         }
 
-        setWallet(from as Address, walletFrom);
-        setWallet(to as Address, walletTo);
+        setWallet(from, walletFrom);
+        setWallet(to, walletTo);
     }
     withdraw({
         getWallet,
@@ -159,12 +150,8 @@ export class ERC1155Batch implements DepositOperation {
         address = getAddress(address);
 
         const wallet = getWallet(address);
-        let nfts = wallet.erc1155[token];
 
-        if (!nfts) {
-            nfts = new Map();
-            wallet.erc1155[token] = nfts;
-        }
+        const nfts = new Map(wallet.erc1155[token]);
 
         // check balance
         for (let i = 0; i < tokenIds.length; i++) {
@@ -183,35 +170,18 @@ export class ERC1155Batch implements DepositOperation {
                     }`,
                 );
             }
-        }
 
-        for (let i = 0; i < tokenIds.length; i++) {
-            const tokenId = tokenIds[i];
-            const value = amounts[i];
-            const balance = nfts.get(tokenId) ?? 0n;
             nfts.set(tokenId, balance - value);
         }
+
+        wallet.erc1155[token] = nfts;
 
         const dappAddress = getDapp();
         let call = encodeFunctionData({
             abi: erc1155Abi,
             functionName: "safeBatchTransferFrom",
-            args: [dappAddress, address as Address, tokenIds, amounts, "0x"],
+            args: [dappAddress, address, tokenIds, amounts, "0x"],
         });
-
-        if (tokenIds.length === 1 && amounts.length === 1) {
-            call = encodeFunctionData({
-                abi: erc1155Abi,
-                functionName: "safeTransferFrom",
-                args: [
-                    dappAddress,
-                    address as Address,
-                    tokenIds[0],
-                    amounts[0],
-                    "0x",
-                ],
-            });
-        }
 
         return {
             destination: token,
