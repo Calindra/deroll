@@ -65,11 +65,26 @@ export class WalletAppImpl implements WalletApp {
     private wallets = new Map<string, Wallet>();
 
     constructor() {}
-    balanceOfEther(address: string): bigint {
-        throw new Error("Method not implemented.");
+    balanceOfEther(tokenOrAddress: string): bigint {
+        const handler = TokenHandler.getInstance();
+
+        return handler.ether.balanceOf({
+            getWallet: this.getWalletOrNew,
+            tokenOrAddress,
+        });
     }
-    balanceOfERC20(token: `0x${string}`, address: string): bigint {
-        throw new Error("Method not implemented.");
+    balanceOfERC20(tokenOrAddress: Address, address: string): bigint {
+        const handler = TokenHandler.getInstance();
+
+        if (isAddress(address)) {
+            address = getAddress(address);
+        }
+
+        return handler.erc20.balanceOf({
+            address,
+            getWallet: this.getWalletOrNew,
+            tokenOrAddress,
+        });
     }
     toJSON(): string {
         throw new Error("Method not implemented.");
