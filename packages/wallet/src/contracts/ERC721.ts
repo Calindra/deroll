@@ -27,7 +27,7 @@ export class ERC721 implements TokenOperation {
         if (isAddress(address)) {
             address = getAddress(address);
         }
-        const size = wallet.erc721.get(address as Address)?.size ?? 0n;
+        const size = wallet.erc721[address as Address]?.size ?? 0n;
         return BigInt(size);
     }
     transfer({
@@ -57,7 +57,7 @@ export class ERC721 implements TokenOperation {
         const walletFrom = getWallet(from);
         const walletTo = getWallet(to);
 
-        const balance = walletFrom.erc721.get(token);
+        const balance = walletFrom.erc721[token];
 
         if (!balance) {
             throw new Error(
@@ -71,10 +71,10 @@ export class ERC721 implements TokenOperation {
             );
         }
 
-        let balanceTo = walletTo.erc721.get(token);
+        let balanceTo = walletTo.erc721[token];
         if (!balanceTo) {
             balanceTo = new Set();
-            walletTo.erc721.set(token, balanceTo);
+            walletTo.erc721[token] = balanceTo;
         }
         balanceTo.add(tokenId);
         balance.delete(tokenId);
@@ -117,7 +117,7 @@ export class ERC721 implements TokenOperation {
             throw new Error(`wallet of user ${address} is undefined`);
         }
 
-        const collection = wallet?.erc721.get(token);
+        const collection = wallet?.erc721[token];
         if (!collection) {
             throw new Error(
                 `insufficient balance of user ${address} of token ${token}`,
@@ -158,12 +158,12 @@ export class ERC721 implements TokenOperation {
 
         const wallet = getWallet(sender);
 
-        const collection = wallet.erc721.get(token);
+        const collection = wallet.erc721[token];
         if (collection) {
             collection.add(tokenId);
         } else {
             const collection = new Set([tokenId]);
-            wallet.erc721.set(token, collection);
+            wallet.erc721[token] = collection;
         }
         setWallet(sender, wallet);
     }

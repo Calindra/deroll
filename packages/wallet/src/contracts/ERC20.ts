@@ -4,7 +4,7 @@ import {
     isHex,
     isAddress,
     encodeFunctionData,
-    erc20Abi
+    erc20Abi,
 } from "viem";
 import type { Voucher } from "@deroll/app";
 import { MissingContextArgumentError } from "../errors";
@@ -14,7 +14,9 @@ import { TokenOperation, TokenContext } from "../token";
 
 export class ERC20 implements TokenOperation {
     balanceOf<T = bigint>({
-        address, getWallet, tokenOrAddress,
+        address,
+        getWallet,
+        tokenOrAddress,
     }: TokenContext): T {
         if (!address || !getWallet || !tokenOrAddress)
             throw new MissingContextArgumentError<TokenContext>({
@@ -26,11 +28,16 @@ export class ERC20 implements TokenOperation {
 
         const erc20address = getAddress(tokenOrAddress);
         const wallet = getWallet(addr);
-        const result = wallet.erc20.get(erc20address) ?? 0n;
+        const result = wallet.erc20[erc20address] ?? 0n;
         return result as T;
     }
     transfer({
-        token, from, to, amount, getWallet, setWallet,
+        token,
+        from,
+        to,
+        amount,
+        getWallet,
+        setWallet,
     }: TokenContext): void {
         if (!token || !from || !to || !amount || !getWallet || !setWallet)
             throw new MissingContextArgumentError<TokenContext>({
@@ -53,23 +60,23 @@ export class ERC20 implements TokenOperation {
         const walletFrom = getWallet(from);
         const walletTo = getWallet(to);
 
-        const balance = walletFrom.erc20.get(token);
+        const balance = walletFrom.erc20[token];
 
         if (!balance || balance < amount) {
             throw new Error(
-                `insufficient balance of user ${from} of token ${token}`
+                `insufficient balance of user ${from} of token ${token}`,
             );
         }
 
         const balanceFrom = balance - amount;
-        walletFrom.erc20.set(token, balanceFrom);
+        walletFrom.erc20[token] = balanceFrom;
 
-        const balanceTo = walletTo.erc20.get(token);
+        const balanceTo = walletTo.erc20[token];
 
         if (balanceTo) {
-            walletTo.erc20.set(token, balanceTo + amount);
+            walletTo.erc20[token] = balanceTo + amount;
         } else {
-            walletTo.erc20.set(token, amount);
+            walletTo.erc20[token] = amount;
         }
 
         setWallet(from as Address, walletFrom);
@@ -95,17 +102,19 @@ export class ERC20 implements TokenOperation {
             throw new Error(`wallet of user ${address} is undefined`);
         }
 
-        const balance = wallet?.erc20.get(token);
+        const balance = wallet.erc20[token];
 
         // check balance
         if (!balance || balance < amount) {
             throw new Error(
-                `insufficient balance of user ${address} of token ${token}: ${amount.toString()} > ${balance?.toString() ?? "0"}`
+                `insufficient balance of user ${address} of token ${token}: ${amount.toString()} > ${
+                    balance?.toString() ?? "0"
+                }`,
             );
         }
 
         // reduce balance right away
-        wallet.erc20.set(token, balance - amount);
+        wallet.erc20[token] = balance - amount;
 
         const call = encodeFunctionData({
             abi: erc20Abi,
@@ -120,7 +129,9 @@ export class ERC20 implements TokenOperation {
         };
     }
     async deposit({
-        payload, getWallet, setWallet,
+        payload,
+        getWallet,
+        setWallet,
     }: TokenContext): Promise<void> {
         if (!payload || !isHex(payload) || !getWallet || !setWallet) {
             throw new MissingContextArgumentError<TokenContext>({
@@ -134,12 +145,12 @@ export class ERC20 implements TokenOperation {
         if (success) {
             const wallet = getWallet(sender);
 
-            const balance = wallet.erc20.get(token);
+            const balance = wallet.erc20[token];
 
             if (balance) {
-                wallet.erc20.set(token, balance + amount);
+                wallet.erc20[token] = balance + amount;
             } else {
-                wallet.erc20.set(token, amount);
+                wallet.erc20[token] = amount;
             }
 
             setWallet(sender, wallet);

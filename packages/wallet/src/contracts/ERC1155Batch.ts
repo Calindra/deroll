@@ -1,4 +1,10 @@
-import { type Address, isHex, getAddress, isAddress, encodeFunctionData } from "viem";
+import {
+    type Address,
+    isHex,
+    getAddress,
+    isAddress,
+    encodeFunctionData,
+} from "viem";
 import { Voucher } from "@deroll/app";
 import { MissingContextArgumentError } from "../errors";
 import { erc1155Abi, erc1155BatchPortalAddress } from "../rollups";
@@ -36,7 +42,7 @@ export class ERC1155Batch implements TokenOperation {
 
             const tokenId = tokenIds[i];
 
-            const collection = wallet.erc1155.get(address as Address);
+            const collection = wallet.erc1155[address as Address];
             const item = collection?.get(tokenId) ?? 0n;
             balances.push(item);
         }
@@ -87,10 +93,10 @@ export class ERC1155Batch implements TokenOperation {
         const walletFrom = getWallet(from);
         const walletTo = getWallet(to);
 
-        let nfts = walletFrom.erc1155.get(token);
+        let nfts = walletFrom.erc1155[token];
         if (!nfts) {
             nfts = new Map();
-            walletFrom.erc1155.set(token, nfts);
+            walletFrom.erc1155[token] = nfts;
         }
 
         // check balance
@@ -121,10 +127,10 @@ export class ERC1155Batch implements TokenOperation {
             nfts.set(tokenId, item - amount);
         }
 
-        let nftsTo = walletTo.erc1155.get(token);
+        let nftsTo = walletTo.erc1155[token];
         if (!nftsTo) {
             nftsTo = new Map();
-            walletTo.erc1155.set(token, nftsTo);
+            walletTo.erc1155[token] = nftsTo;
         }
 
         for (let i = 0; i < tokenIds.length; i++) {
@@ -145,7 +151,14 @@ export class ERC1155Batch implements TokenOperation {
         address,
         getDapp,
     }: TokenContext): Voucher {
-        if (!tokenIds || !amounts || !token || !address || !getWallet || !getDapp) {
+        if (
+            !tokenIds ||
+            !amounts ||
+            !token ||
+            !address ||
+            !getWallet ||
+            !getDapp
+        ) {
             throw new MissingContextArgumentError<TokenContext>({
                 tokenIds,
                 amounts,
@@ -171,11 +184,11 @@ export class ERC1155Batch implements TokenOperation {
         address = getAddress(address);
 
         const wallet = getWallet(address);
-        let nfts = wallet.erc1155.get(token);
+        let nfts = wallet.erc1155[token];
 
         if (!nfts) {
             nfts = new Map();
-            wallet.erc1155.set(token, nfts);
+            wallet.erc1155[token] = nfts;
         }
 
         // check balance
@@ -215,7 +228,13 @@ export class ERC1155Batch implements TokenOperation {
             call = encodeFunctionData({
                 abi: erc1155Abi,
                 functionName: "safeTransferFrom",
-                args: [dappAddress, address as Address, tokenIds[0], amounts[0], "0x"],
+                args: [
+                    dappAddress,
+                    address as Address,
+                    tokenIds[0],
+                    amounts[0],
+                    "0x",
+                ],
             });
         }
 
@@ -241,10 +260,10 @@ export class ERC1155Batch implements TokenOperation {
             parseERC1155BatchDeposit(payload);
 
         const wallet = getWallet(sender);
-        let collection = wallet.erc1155.get(token);
+        let collection = wallet.erc1155[token];
         if (!collection) {
             collection = new Map();
-            wallet.erc1155.set(token, collection);
+            wallet.erc1155[token] = collection;
         }
 
         for (let i = 0; i < tokenIds.length; i++) {

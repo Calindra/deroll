@@ -29,7 +29,7 @@ export class ERC1155Single implements TokenOperation {
             address = getAddress(address);
         }
 
-        const collection = wallet.erc1155.get(address as Address);
+        const collection = wallet.erc1155[address as Address];
         const balance = collection?.get(tokenId) ?? 0n;
 
         return balance;
@@ -74,10 +74,10 @@ export class ERC1155Single implements TokenOperation {
         const walletFrom = getWallet(from);
         const walletTo = getWallet(to);
 
-        let nfts = walletFrom.erc1155.get(token);
+        let nfts = walletFrom.erc1155[token];
         if (!nfts) {
             nfts = new Map();
-            walletFrom.erc1155.set(token, nfts);
+            walletFrom.erc1155[token] = nfts;
         }
 
         // check balance
@@ -96,10 +96,10 @@ export class ERC1155Single implements TokenOperation {
 
         nfts.set(tokenId, balance - amount);
 
-        let nftsTo = walletTo.erc1155.get(token);
+        let nftsTo = walletTo.erc1155[token];
         if (!nftsTo) {
             nftsTo = new Map();
-            walletTo.erc1155.set(token, nftsTo);
+            walletTo.erc1155[token] = nftsTo;
         }
 
         const item = nftsTo.get(tokenId) ?? 0n;
@@ -139,11 +139,11 @@ export class ERC1155Single implements TokenOperation {
         address = getAddress(address);
 
         const wallet = getWallet(address);
-        let nfts = wallet.erc1155.get(token);
+        let nfts = wallet.erc1155[token];
 
         if (!nfts) {
             nfts = new Map();
-            wallet.erc1155.set(token, nfts);
+            wallet.erc1155[token] = nfts;
         }
 
         // check balance
@@ -191,10 +191,10 @@ export class ERC1155Single implements TokenOperation {
             parseERC1155SingleDeposit(payload);
 
         const wallet = getWallet(sender);
-        let collection = wallet.erc1155.get(token);
+        let collection = wallet.erc1155[token];
         if (!collection) {
             collection = new Map();
-            wallet.erc1155.set(token, collection);
+            wallet.erc1155[token] = collection;
         }
         const tokenBalance = collection.get(tokenId) ?? 0n;
         collection.set(tokenId, tokenBalance + value);

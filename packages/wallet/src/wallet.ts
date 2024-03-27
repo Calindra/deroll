@@ -1,4 +1,3 @@
-import { inspect } from "node:util";
 import { Address, getAddress, isAddress } from "viem";
 import { AdvanceRequestHandler, Voucher } from "@deroll/app";
 
@@ -6,14 +5,22 @@ import { TokenHandler } from "./token";
 
 export type Wallet = {
     ether: bigint;
-    erc20: Map<Address, bigint>;
-    erc721: Map<Address, Set<bigint>>;
-    erc1155: Map<Address, Map<bigint, bigint>>;
+    erc20: Record<Address, bigint>;
+    erc721: Record<Address, Set<bigint>>;
+    erc1155: Record<Address, Map<bigint, bigint>>;
 };
 
 export interface WalletApp {
+    /**
+     * @deprecated use {@link balanceOfEther} instead
+     */
     balanceOf(address: string): bigint;
+    /**
+     * @deprecated use {@link balanceOfERC20} instead
+     */
     balanceOf(token: Address, address: string): bigint;
+    balanceOfEther(address: string): bigint;
+    balanceOfERC20(token: Address, address: string): bigint;
     balanceOfERC721(token: Address, owner: string): bigint;
     balanceOfERC1155(
         addresses: string | string[],
@@ -50,6 +57,7 @@ export interface WalletApp {
         tokenIds: bigint | bigint[],
         values: bigint | bigint[],
     ): Voucher;
+    toJSON(): string;
 }
 
 export class WalletAppImpl implements WalletApp {
@@ -57,6 +65,15 @@ export class WalletAppImpl implements WalletApp {
     private wallets = new Map<string, Wallet>();
 
     constructor() {}
+    balanceOfEther(address: string): bigint {
+        throw new Error("Method not implemented.");
+    }
+    balanceOfERC20(token: `0x${string}`, address: string): bigint {
+        throw new Error("Method not implemented.");
+    }
+    toJSON(): string {
+        throw new Error("Method not implemented.");
+    }
     setDapp = (address: Address): void => {
         this.dapp = address;
     };
@@ -84,9 +101,9 @@ export class WalletAppImpl implements WalletApp {
     createDefaultWallet(): Wallet {
         return {
             ether: 0n,
-            erc20: new Map(),
-            erc721: new Map(),
-            erc1155: new Map(),
+            erc20: {},
+            erc721: {},
+            erc1155: {},
         };
     }
 

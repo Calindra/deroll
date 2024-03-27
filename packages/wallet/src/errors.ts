@@ -14,3 +14,8 @@ export class MissingContextArgumentError<T extends object> extends Error {
         super(`Missing context argument: ${missingKeys.join(", ")}`);
     }
 }
+
+
+/**
+ * @todo withdraw and transfer when throw error specific
+ */

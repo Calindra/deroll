@@ -1,3 +1,4 @@
+import { getRandomValues } from "node:crypto";
 import { beforeEach, describe, expect, test } from "vitest";
 import {
     Address,
@@ -35,7 +36,6 @@ import {
     dAppAddressRelayAddress,
     cartesiDAppAbi,
 } from "../src/rollups";
-import { getRandomValues } from "node:crypto";
 
 function generateAddress(): Address {
     const address = new Uint8Array(20);
@@ -427,8 +427,7 @@ describe("Wallet", () => {
             const from = generateAddress();
             const sender = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
             const amount = 1n;
-            const call = wallet.transferEther.bind(
-                wallet,
+            const call = () => wallet.transferEther(
                 from,
                 sender,
                 amount,
@@ -468,8 +467,7 @@ describe("Wallet", () => {
             const token = generateAddress();
             const amount = 123456n;
 
-            const call = wallet.transferERC20.bind(
-                wallet,
+            const call = () => wallet.transferERC20(
                 token,
                 from,
                 to,
