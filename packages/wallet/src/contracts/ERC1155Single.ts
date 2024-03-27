@@ -12,7 +12,12 @@ import { parseERC1155SingleDeposit } from "..";
 import { TokenOperation, TokenContext } from "../token";
 
 export class ERC1155Single implements TokenOperation {
-    balanceOf({ address, tokenId, getWallet, owner }: TokenContext): bigint {
+    balanceOf({
+        address,
+        tokenId,
+        getWallet,
+        owner,
+    }: TokenContext): bigint {
         if (!address || !tokenId || !getWallet || !owner) {
             throw new MissingContextArgumentError<TokenContext>({
                 getWallet,
@@ -204,3 +209,5 @@ export class ERC1155Single implements TokenOperation {
         return msgSender === erc1155SinglePortalAddress;
     }
 }
+
+export const erc1155Single = new ERC1155Single();

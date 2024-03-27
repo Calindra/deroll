@@ -20,3 +20,5 @@ export class Relay implements TokenOperation {
         setDapp(dapp);
     }
 }
+
+export const relay = new Relay();

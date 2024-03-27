@@ -13,11 +13,7 @@ import { parseERC20Deposit } from "..";
 import { TokenOperation, TokenContext } from "../token";
 
 export class ERC20 implements TokenOperation {
-    balanceOf<T = bigint>({
-        address,
-        getWallet,
-        tokenOrAddress,
-    }: TokenContext): T {
+    balanceOf({ address, getWallet, tokenOrAddress }: TokenContext): bigint {
         if (!address || !getWallet || !tokenOrAddress)
             throw new MissingContextArgumentError<TokenContext>({
                 address,
@@ -29,7 +25,7 @@ export class ERC20 implements TokenOperation {
         const erc20address = getAddress(tokenOrAddress);
         const wallet = getWallet(addr);
         const result = wallet.erc20[erc20address] ?? 0n;
-        return result as T;
+        return result;
     }
     transfer({
         token,
@@ -160,3 +156,5 @@ export class ERC20 implements TokenOperation {
         return msgSender === erc20PortalAddress;
     }
 }
+
+export const erc20 = new ERC20();

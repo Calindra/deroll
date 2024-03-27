@@ -12,10 +12,7 @@ import { parseEtherDeposit } from "..";
 import { TokenOperation, TokenContext } from "../token";
 
 export class Ether implements TokenOperation {
-    balanceOf<T extends bigint | bigint[]>({
-        tokenOrAddress,
-        getWallet,
-    }: TokenContext): T {
+    balanceOf({ tokenOrAddress, getWallet }: TokenContext): bigint {
         if (!tokenOrAddress || !getWallet)
             throw new MissingContextArgumentError<TokenContext>({
                 tokenOrAddress,
@@ -29,7 +26,7 @@ export class Ether implements TokenOperation {
         const wallet = getWallet(tokenOrAddress as Address);
 
         // ether balance
-        return (wallet?.ether ?? 0n) as T;
+        return wallet?.ether ?? 0n;
     }
     transfer({ getWallet, from, to, amount, setWallet }: TokenContext): void {
         if (!from || !to || !amount || !getWallet || !setWallet) {
@@ -130,3 +127,5 @@ export class Ether implements TokenOperation {
         setWallet(sender, wallet);
     }
 }
+
+export const ether = new Ether();

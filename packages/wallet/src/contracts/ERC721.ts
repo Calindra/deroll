@@ -171,3 +171,5 @@ export class ERC721 implements TokenOperation {
         return msgSender === erc721PortalAddress;
     }
 }
+
+export const erc721 = new ERC721();

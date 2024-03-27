@@ -279,3 +279,4 @@ export class ERC1155Batch implements TokenOperation {
         return msgSender === erc1155BatchPortalAddress;
     }
 }
+export const erc1155Batch = new ERC1155Batch();

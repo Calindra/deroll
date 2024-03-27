@@ -3,12 +3,12 @@ import { isValidAdvanceRequestData } from "./util";
 import { InvalidPayloadError } from "./errors";
 import type { Wallet } from "./wallet";
 import {
-    ERC1155Batch,
-    ERC1155Single,
-    ERC20,
-    ERC721,
-    Ether,
-    Relay,
+    erc1155Batch,
+    erc1155Single,
+    erc20,
+    erc721,
+    ether,
+    relay,
 } from "./contracts";
 
 export type TokenContext = Partial<{
@@ -43,35 +43,16 @@ export interface TokenOperation {
     deposit(context: DepositArgs): Promise<void>;
 }
 
-export class TokenHandler {
+class TokenHandler {
     private static instance: TokenHandler;
-    private readonly handlers: Readonly<TokenOperation>[];
-
-    public readonly ether = new Ether();
-    public readonly erc20 = new ERC20();
-    public readonly erc721 = new ERC721();
-    public readonly erc1155Single = new ERC1155Single();
-    public readonly erc1155Batch = new ERC1155Batch();
-
-    /**
-     * Singleton
-     */
-    private constructor() {
-        this.handlers = [
-            this.ether,
-            this.erc20,
-            this.erc721,
-            this.erc1155Single,
-            this.erc1155Batch,
-            new Relay(),
-        ];
-    }
-    public static getInstance(): TokenHandler {
-        if (!TokenHandler.instance) {
-            TokenHandler.instance = new TokenHandler();
-        }
-        return TokenHandler.instance;
-    }
+    private readonly handlers: Readonly<TokenOperation>[] = [
+        ether,
+        erc20,
+        erc721,
+        erc1155Single,
+        erc1155Batch,
+        relay,
+    ];
 
     /**
      * Find the deposit handler for the given data
@@ -93,3 +74,5 @@ export class TokenHandler {
         }
     }
 }
+
+export const tokenHandler = new TokenHandler();
