@@ -11,6 +11,10 @@ import { erc20PortalAddress } from "../rollups";
 import { parseERC20Deposit } from "..";
 import { DepositArgs, DepositOperation } from "../token";
 import { Wallet } from "../wallet";
+import {
+    InsufficientBalanceError,
+    WalletUndefinedError,
+} from "../errors";
 
 interface BalanceOf {
     address: string;
@@ -67,9 +71,7 @@ export class ERC20 implements DepositOperation {
         const balance = walletFrom.erc20[token];
 
         if (!balance || balance < amount) {
-            throw new Error(
-                `insufficient balance of user ${from} of token ${token}`,
-            );
+            throw new InsufficientBalanceError(from, token, amount);
         }
 
         const balanceFrom = balance - amount;
@@ -94,18 +96,14 @@ export class ERC20 implements DepositOperation {
         const wallet = getWallet(address);
 
         if (!wallet) {
-            throw new Error(`wallet of user ${address} is undefined`);
+            throw new WalletUndefinedError(address);
         }
 
         const balance = wallet.erc20[token];
 
         // check balance
         if (!balance || balance < amount) {
-            throw new Error(
-                `insufficient balance of user ${address} of token ${token}: ${amount.toString()} > ${
-                    balance?.toString() ?? "0"
-                }`,
-            );
+            throw new InsufficientBalanceError(address, token, amount);
         }
 
         // reduce balance right away

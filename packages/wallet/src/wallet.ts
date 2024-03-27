@@ -4,6 +4,7 @@ import { AdvanceRequestHandler, Voucher } from "@deroll/app";
 import { ether, erc20, erc721, erc1155Single, erc1155Batch } from "./contracts";
 
 import { depositHandler } from "./token";
+import { RelayError } from "./errors";
 
 export type Wallet = {
     ether: bigint;
@@ -314,9 +315,7 @@ export class WalletAppImpl implements WalletApp {
 
     getDappAddressOrThrow = (): Address => {
         if (!this.dapp) {
-            throw new Error(
-                `You need to call the method relayDAppAddress from DAppAddressRelay__factory.`,
-            );
+            throw new RelayError();
         }
         return this.dapp;
     };

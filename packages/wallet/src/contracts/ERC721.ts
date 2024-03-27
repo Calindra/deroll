@@ -11,17 +11,22 @@ import { erc721PortalAddress } from "../rollups";
 import { parseERC721Deposit } from "..";
 import { DepositArgs, DepositOperation } from "../token";
 import { Wallet } from "../wallet";
+import {
+    TokenFromUserNotFound,
+    InsufficientBalanceError,
+    WalletUndefinedError,
+} from "../errors";
 
 interface BalanceOf {
     owner: Address;
-    getWallet(address: string): Wallet
+    getWallet(address: string): Wallet;
     address: string;
 }
 
 interface Transfer {
     from: Address;
     to: Address;
-    getWallet(address: string): Wallet
+    getWallet(address: string): Wallet;
     setWallet(address: string, wallet: Wallet): void;
     token: Address;
     tokenId: bigint;
@@ -30,7 +35,7 @@ interface Transfer {
 interface Withdraw {
     token: Address;
     address: Address;
-    getWallet(address: string): Wallet
+    getWallet(address: string): Wallet;
     setWallet(address: string, wallet: Wallet): void;
     tokenId: bigint;
     getDapp(): Address;
@@ -70,15 +75,11 @@ export class ERC721 implements DepositOperation {
         const balance = walletFrom.erc721[token];
 
         if (!balance) {
-            throw new Error(
-                `insufficient balance of user ${from} of token ${token}`,
-            );
+            throw new InsufficientBalanceError(from, token, tokenId);
         }
 
         if (!balance.has(tokenId)) {
-            throw new Error(
-                `user ${from} does not have token ${tokenId} of token ${token}`,
-            );
+            throw new TokenFromUserNotFound(from, token, tokenId);
         }
 
         let balanceTo = walletTo.erc721[token];
@@ -105,19 +106,12 @@ export class ERC721 implements DepositOperation {
         const wallet = getWallet(address);
 
         if (!wallet) {
-            throw new Error(`wallet of user ${address} is undefined`);
+            throw new WalletUndefinedError(address);
         }
 
-        const collection = wallet?.erc721[token];
-        if (!collection) {
-            throw new Error(
-                `insufficient balance of user ${address} of token ${token}`,
-            );
-        }
+        const collection = wallet.erc721[token];
         if (!collection.has(tokenId)) {
-            throw new Error(
-                `insufficient balance of user ${address} of token ${token} id ${tokenId}`,
-            );
+            throw new InsufficientBalanceError(address, token, 1n, tokenId);
         }
         const dappAddress = getDapp();
 

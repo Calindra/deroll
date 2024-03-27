@@ -10,6 +10,7 @@ import { cartesiDAppAbi, etherPortalAddress } from "../rollups";
 import { parseEtherDeposit } from "..";
 import { DepositArgs, DepositOperation } from "../token";
 import { Wallet } from "../wallet";
+import { InsufficientBalanceError, WalletUndefinedError } from "../errors";
 
 interface BalanceOf {
     address: string;
@@ -47,7 +48,7 @@ export class Ether implements DepositOperation {
         const walletTo = getWallet(to);
 
         if (walletFrom.ether < amount) {
-            throw new Error(`insufficient balance of user ${from}`);
+            throw new InsufficientBalanceError(from, "ether", amount);
         }
 
         walletFrom.ether = walletFrom.ether - amount;
@@ -62,21 +63,14 @@ export class Ether implements DepositOperation {
         const wallet = getWallet(address);
 
         if (!wallet) {
-            throw new Error(`wallet of user ${address} is undefined`);
+            throw new WalletUndefinedError(address);
         }
 
         const dapp = getDapp();
 
-        // check if dapp address is defined
-        if (!dapp) {
-            throw new Error(`undefined application address`);
-        }
-
         // check balance
         if (wallet.ether < amount) {
-            throw new Error(
-                `insufficient balance of user ${address}: ${amount.toString()} > ${wallet.ether.toString()}`,
-            );
+            throw new InsufficientBalanceError(address, "ether", amount);
         }
 
         // reduce balance right away

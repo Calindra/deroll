@@ -10,6 +10,7 @@ import { erc1155Abi, erc1155SinglePortalAddress } from "../rollups";
 import { parseERC1155SingleDeposit } from "..";
 import { DepositArgs, DepositOperation } from "../token";
 import type { Wallet } from "../wallet";
+import { InsufficientBalanceError, NegativeTokenIdError } from "../errors";
 
 interface BalanceOf {
     address: Address;
@@ -21,7 +22,7 @@ interface BalanceOf {
 interface Transfer {
     from: Address;
     to: Address;
-    getWallet(address: string): Wallet
+    getWallet(address: string): Wallet;
     setWallet(address: string, wallet: Wallet): void;
     token: Address;
     tokenId: bigint;
@@ -31,7 +32,7 @@ interface Transfer {
 interface Withdraw {
     token: Address;
     address: Address;
-    getWallet(address: string): Wallet
+    getWallet(address: string): Wallet;
     getDapp(): Address;
     tokenId: bigint;
     amount: bigint;
@@ -79,14 +80,10 @@ export class ERC1155Single implements DepositOperation {
         const balance = nfts.get(tokenId) ?? 0n;
 
         if (amount < 0n) {
-            throw new Error(`negative value for tokenId ${tokenId}: ${amount}`);
+            throw new NegativeTokenIdError(tokenId, amount);
         }
         if (balance < amount) {
-            throw new Error(
-                `insufficient balance of user ${from} of token ${tokenId}: ${amount.toString()} > ${
-                    balance.toString() ?? "0"
-                }`,
-            );
+            throw new InsufficientBalanceError(from, token, amount, tokenId);
         }
 
         nfts.set(tokenId, balance - amount);
@@ -125,15 +122,11 @@ export class ERC1155Single implements DepositOperation {
 
         // check balance
         if (amount < 0n) {
-            throw new Error(`negative value for tokenId ${tokenId}: ${amount}`);
+            throw new NegativeTokenIdError(tokenId, amount);
         }
         const balance = nfts.get(tokenId) ?? 0n;
         if (balance < amount) {
-            throw new Error(
-                `insufficient balance of user ${address} of token ${token} of tokenId ${tokenId}: ${amount.toString()} > ${
-                    balance.toString() ?? "0"
-                }`,
-            );
+            throw new InsufficientBalanceError(address, token, amount, tokenId);
         }
 
         nfts.set(tokenId, balance - amount);

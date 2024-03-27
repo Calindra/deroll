@@ -10,6 +10,12 @@ import { erc1155Abi, erc1155BatchPortalAddress } from "../rollups";
 import { parseERC1155BatchDeposit } from "..";
 import { DepositArgs, DepositOperation } from "../token";
 import { Wallet } from "../wallet";
+import {
+    ArrayEmptyError,
+    NegativeTokenIdError,
+    ArrayNoSameLength,
+    InsufficientBalanceError,
+} from "../errors";
 
 interface BalanceOf {
     addresses: Address[];
@@ -40,7 +46,7 @@ interface Withdraw {
 export class ERC1155Batch implements DepositOperation {
     balanceOf({ addresses, tokenIds, owner, getWallet }: BalanceOf): bigint[] {
         if (addresses.length !== tokenIds.length) {
-            throw new Error("addresses and tokenIds must have the same length");
+            throw new ArrayNoSameLength("addresses", "tokenIds");
         }
 
         const wallet = getWallet(owner);
@@ -68,7 +74,7 @@ export class ERC1155Batch implements DepositOperation {
         token,
     }: Transfer): void {
         if (tokenIds.length !== amounts.length) {
-            throw new Error("tokenIds and values must have the same length");
+            throw new ArrayNoSameLength("tokenIds", "amounts");
         }
 
         token = getAddress(token);
@@ -94,16 +100,10 @@ export class ERC1155Batch implements DepositOperation {
             const item = nfts.get(tokenId) ?? 0n;
 
             if (amount < 0n) {
-                throw new Error(
-                    `negative value for tokenId ${tokenId}: ${amount}`,
-                );
+                throw new NegativeTokenIdError(tokenId, amount);
             }
             if (item < amount) {
-                throw new Error(
-                    `insufficient balance of user ${from} of token ${tokenId}: ${amount.toString()} > ${
-                        item.toString() ?? "0"
-                    }`,
-                );
+                throw new InsufficientBalanceError(from, token, amount);
             }
 
             nfts.set(tokenId, item - amount);
@@ -135,14 +135,11 @@ export class ERC1155Batch implements DepositOperation {
         address,
         getDapp,
     }: Withdraw): Voucher {
-        if (!tokenIds.length || !amounts.length) {
-            throw new Error("tokenIds and values must not be empty");
-        }
+        if (!tokenIds.length) throw new ArrayEmptyError("tokenIds");
+        if (!amounts.length) throw new ArrayEmptyError("amounts");
 
         if (tokenIds.length !== amounts.length) {
-            throw new Error(
-                `tokenIds(size: ${tokenIds.length})) and values(size: ${amounts.length}) must have the same length`,
-            );
+            throw new ArrayNoSameLength("tokenIds", "amounts");
         }
 
         // normalize addresses
@@ -158,17 +155,11 @@ export class ERC1155Batch implements DepositOperation {
             const tokenId = tokenIds[i];
             const value = amounts[i];
             if (value < 0n) {
-                throw new Error(
-                    `negative value for tokenId ${tokenId}: ${value}`,
-                );
+                throw new NegativeTokenIdError(tokenId, value);
             }
             const balance = nfts.get(tokenId) ?? 0n;
             if (balance < value) {
-                throw new Error(
-                    `insufficient balance of user ${address} of token ${token} of tokenId ${tokenId}: ${value.toString()} > ${
-                        balance.toString() ?? "0"
-                    }`,
-                );
+                throw new InsufficientBalanceError(address, token, value);
             }
 
             nfts.set(tokenId, balance - value);
