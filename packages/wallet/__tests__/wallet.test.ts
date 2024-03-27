@@ -556,6 +556,10 @@ describe("Wallet", () => {
             expect(wallet.balanceOfERC721(token, from)).toEqual(1n);
             expect(wallet.balanceOfERC721(token, to)).toEqual(0n);
         });
+
+        test.todo("transfer ERC1155Batch with token not found", () => {});
+        test.todo("transfer ERC1155Batch with values negative", () => {});
+
         test("transfer ERC1155 without balance", () => {
             const token = "0xc961145a54C96E3aE9bAA048c4F4D6b04C13916b";
             const from = "0x18930e8a66a1DbE21D00581216789AAB7460Afd0";
