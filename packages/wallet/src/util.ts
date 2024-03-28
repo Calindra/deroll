@@ -1,6 +1,5 @@
 import { AdvanceRequestData, RequestMetadata } from "@deroll/app";
 import { isAddress, isHex } from "viem";
-import { MissingContextArgumentError } from "./errors";
 
 // Utils
 const haveKeys = <T extends object>(
