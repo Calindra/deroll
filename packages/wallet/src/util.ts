@@ -29,16 +29,3 @@ export const isValidAdvanceRequestData = (
         isHex(data.payload, { strict: true })
     );
 };
-
-export const checkFieldsOrThrow = <T extends object>(
-    obj: Partial<T>,
-): obj is Required<typeof obj> => {
-    const keys = Object.entries(obj);
-    const undKeys = keys.filter(([, value]) => value !== undefined);
-
-    if (undKeys.length > 0) {
-        throw new MissingContextArgumentError(Object.fromEntries(undKeys));
-    }
-
-    return true;
-};
