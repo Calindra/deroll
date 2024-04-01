@@ -70,12 +70,7 @@ export class ERC721 implements CanHandler {
 
         let wallet = walletFrom.erc721[token];
 
-        if (!wallet) {
-            wallet = new Set();
-            walletFrom.erc721[token] = wallet;
-        }
-
-        if (!wallet.has(tokenId)) {
+        if (!wallet?.has(tokenId)) {
             throw new InsufficientBalanceError(from, token, tokenId);
         }
 
