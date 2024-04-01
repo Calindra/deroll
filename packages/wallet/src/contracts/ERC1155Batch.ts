@@ -8,7 +8,7 @@ import { Voucher, type AdvanceRequestHandler } from "@deroll/app";
 import { erc1155Abi } from "../rollups";
 import { parseERC1155BatchDeposit } from "..";
 import { CanHandler } from "../types";
-import { Wallet } from "../wallet";
+import { Wallet, type WalletApp } from "../wallet";
 import {
     ArrayEmptyError,
     ArrayNoSameLength,
@@ -43,6 +43,8 @@ interface Withdraw {
 }
 
 export class ERC1155Batch implements CanHandler {
+    constructor(private wallet: WalletApp) { };
+
     balanceOf({ addresses, tokenIds, owner, getWallet }: BalanceOf): bigint[] {
         if (addresses.length !== tokenIds.length) {
             throw new ArrayNoSameLength("addresses", "tokenIds");
@@ -180,18 +182,12 @@ export class ERC1155Batch implements CanHandler {
         };
     }
 
-    handler: AdvanceRequestHandler = async (data) => {
-        return "accept"
-    }
-    async deposit({
-        payload,
-        setWallet,
-        getWallet,
-    }: any): Promise<void> {
+    handler: AdvanceRequestHandler = async ({ payload }) => {
+
         const { token, sender, tokenIds, values } =
             parseERC1155BatchDeposit(payload);
 
-        const wallet = getWallet(sender);
+        const wallet = this.wallet.getWalletOrNew(sender);
         let collection = wallet.erc1155[token];
         if (!collection) {
             collection = new Map();
@@ -205,8 +201,8 @@ export class ERC1155Batch implements CanHandler {
             const tokenBalance = collection.get(tokenId) ?? 0n;
             collection.set(tokenId, tokenBalance + value);
         }
-        setWallet(sender, wallet);
-    }
+        this.wallet.setWallet(sender, wallet);
 
+        return "accept"
+    }
 }
-export const erc1155Batch = new ERC1155Batch();

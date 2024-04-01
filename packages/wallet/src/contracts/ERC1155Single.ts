@@ -7,8 +7,8 @@ import {
 import type { AdvanceRequestHandler, Voucher } from "@deroll/app";
 import { erc1155Abi } from "../rollups";
 import { parseERC1155SingleDeposit } from "..";
-import {  CanHandler } from "../types";
-import type { Wallet } from "../wallet";
+import { CanHandler } from "../types";
+import type { Wallet, WalletApp } from "../wallet";
 import { InsufficientBalanceError, NegativeAmountError } from "../errors";
 
 interface BalanceOf {
@@ -38,6 +38,8 @@ interface Withdraw {
 }
 
 export class ERC1155Single implements CanHandler {
+    constructor(private wallet: WalletApp) { };
+
     balanceOf({ address, tokenId, getWallet, owner }: BalanceOf): bigint {
         const wallet = getWallet(owner);
         address = getAddress(address);
@@ -144,20 +146,11 @@ export class ERC1155Single implements CanHandler {
         };
     }
 
-    handler: AdvanceRequestHandler = async (data) => {
-        return "accept"
-    }
-
-
-    async deposit({
-        payload,
-        setWallet,
-        getWallet,
-    }: any): Promise<void> {
+    handler: AdvanceRequestHandler = async ({ payload }) => {
         const { tokenId, sender, token, value } =
             parseERC1155SingleDeposit(payload);
 
-        const wallet = getWallet(sender);
+        const wallet = this.wallet.getWalletOrNew(sender);
         let collection = wallet.erc1155[token];
         if (!collection) {
             collection = new Map();
@@ -165,8 +158,8 @@ export class ERC1155Single implements CanHandler {
         }
         const tokenBalance = collection.get(tokenId) ?? 0n;
         collection.set(tokenId, tokenBalance + value);
-        setWallet(sender, wallet);
+        this.wallet.setWallet(sender, wallet);
+
+        return "accept"
     }
 }
-
-export const erc1155Single = new ERC1155Single();

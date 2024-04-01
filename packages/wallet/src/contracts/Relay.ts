@@ -1,17 +1,18 @@
 import {
-    getAddress} from "viem";
+    getAddress
+} from "viem";
 import type { AdvanceRequestHandler } from "@deroll/app";
 import { CanHandler } from "../types";
+import type { WalletApp } from "../wallet";
 
 export class Relay implements CanHandler {
-    handler: AdvanceRequestHandler = async (data) => {
-        return "accept"
-    }
+    constructor(private wallet: WalletApp) { };
 
-    async deposit({ payload, setDapp }: any): Promise<void> {
+    handler: AdvanceRequestHandler = async ({payload}) => {
         const dapp = getAddress(payload);
-        setDapp(dapp);
+        this.wallet.setDapp(dapp);
+
+        return "accept"
     }
 }
 
-export const relay = new Relay();

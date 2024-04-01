@@ -3,7 +3,7 @@ import type { AdvanceRequestHandler, Voucher } from "@deroll/app";
 import { cartesiDAppAbi } from "../rollups";
 import { parseEtherDeposit } from "..";
 import { CanHandler } from "../types";
-import { Wallet } from "../wallet";
+import { Wallet, type WalletApp } from "../wallet";
 import { InsufficientBalanceError, NegativeAmountError } from "../errors";
 
 interface BalanceOf {
@@ -27,6 +27,8 @@ interface Withdraw {
 }
 
 export class Ether implements CanHandler {
+    constructor(private wallet: WalletApp) { };
+
     balanceOf({ address, getWallet }: BalanceOf): bigint {
         if (isAddress(address)) {
             address = getAddress(address);
@@ -85,15 +87,12 @@ export class Ether implements CanHandler {
     }
 
     handler: AdvanceRequestHandler = async ({ payload }) => {
+        const { sender, value } = parseEtherDeposit(payload);
+        const wallet = this.wallet.getWalletOrNew(sender);
+        wallet.ether += value;
+        this.wallet.setWallet(sender, wallet);
+
         return "accept";
     };
-
-    async deposit({ payload, setWallet, getWallet }: any): Promise<void> {
-        const { sender, value } = parseEtherDeposit(payload);
-        const wallet = getWallet(sender);
-        wallet.ether += value;
-        setWallet(sender, wallet);
-    }
 }
 
-export const ether = new Ether();

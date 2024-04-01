@@ -8,7 +8,7 @@ import {
 import type { AdvanceRequestHandler, Voucher } from "@deroll/app";
 import { parseERC721Deposit } from "..";
 import { CanHandler } from "../types";
-import { Wallet } from "../wallet";
+import { Wallet, type WalletApp } from "../wallet";
 import {
     InsufficientBalanceError,
 } from "../errors";
@@ -38,6 +38,8 @@ interface Withdraw {
 }
 
 export class ERC721 implements CanHandler {
+    constructor(private wallet: WalletApp) { };
+
     balanceOf({ owner, getWallet, address }: BalanceOf): bigint {
         const ownerAddress = getAddress(owner);
         const wallet = getWallet(ownerAddress);
@@ -122,17 +124,10 @@ export class ERC721 implements CanHandler {
         };
     }
 
-    handler: AdvanceRequestHandler = async (data) => {
-        return "accept"
-    }
-    async deposit({
-        payload,
-        setWallet,
-        getWallet,
-    }: any): Promise<void> {
+    handler: AdvanceRequestHandler = async ({ payload }) => {
         const { token, sender, tokenId } = parseERC721Deposit(payload);
 
-        const wallet = getWallet(sender);
+        const wallet = this.wallet.getWalletOrNew(sender);
 
         const collection = wallet.erc721[token];
         if (collection) {
@@ -141,8 +136,8 @@ export class ERC721 implements CanHandler {
             const collection = new Set([tokenId]);
             wallet.erc721[token] = collection;
         }
-        setWallet(sender, wallet);
+        this.wallet.setWallet(sender, wallet);
+
+        return "accept"
     }
 }
-
-export const erc721 = new ERC721();

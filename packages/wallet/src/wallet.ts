@@ -2,12 +2,12 @@ import { Address, getAddress, isAddress } from "viem";
 import { AdvanceRequestHandler, Voucher } from "@deroll/app";
 
 import {
-    ether,
-    erc20,
-    erc721,
-    erc1155Single,
-    erc1155Batch,
-    relay,
+    Ether,
+    ERC20,
+    ERC721,
+    ERC1155Single,
+    ERC1155Batch,
+    Relay,
 } from "./contracts";
 
 import { RelayError } from "./errors";
@@ -74,6 +74,11 @@ export interface WalletApp {
         tokenIds: bigint | bigint[],
         values: bigint | bigint[],
     ): Voucher;
+
+    getDappAddressOrThrow(): Address;
+    setDapp(address: Address): void;
+    setWallet(address: string, wallet: Wallet): void;
+    getWalletOrNew(address: string): Wallet;
 }
 
 export class WalletAppImpl implements WalletApp {
@@ -82,14 +87,28 @@ export class WalletAppImpl implements WalletApp {
 
     private readonly handlers: Record<Address, AdvanceRequestHandler>;
 
+    ether: Ether;
+    erc20: ERC20;
+    erc721: ERC721;
+    erc1155Single: ERC1155Single;
+    erc1155Batch: ERC1155Batch;
+    relay: Relay;
+
     constructor() {
+        this.ether = new Ether(this);
+        this.erc20 = new ERC20(this);
+        this.erc721 = new ERC721(this);
+        this.erc1155Single = new ERC1155Single(this);
+        this.erc1155Batch = new ERC1155Batch(this);
+        this.relay = new Relay(this);
+
         this.handlers = {
-            [etherPortalAddress]: ether.handler,
-            [erc20PortalAddress]: erc20.handler,
-            [erc721PortalAddress]: erc721.handler,
-            [erc1155SinglePortalAddress]: erc1155Single.handler,
-            [erc1155BatchPortalAddress]: erc1155Batch.handler,
-            [dAppAddressRelayAddress]: relay.handler,
+            [etherPortalAddress]: this.ether.handler,
+            [erc20PortalAddress]: this.erc20.handler,
+            [erc721PortalAddress]: this.erc721.handler,
+            [erc1155SinglePortalAddress]: this.erc1155Single.handler,
+            [erc1155BatchPortalAddress]: this.erc1155Batch.handler,
+            [dAppAddressRelayAddress]: this.relay.handler,
         };
     }
 
@@ -134,7 +153,7 @@ export class WalletAppImpl implements WalletApp {
     }
 
     balanceOfEther(tokenOrAddress: string): bigint {
-        return ether.balanceOf({
+        return this.ether.balanceOf({
             getWallet: this.getWalletOrNew,
             address: tokenOrAddress,
         });
@@ -145,7 +164,7 @@ export class WalletAppImpl implements WalletApp {
             address = getAddress(address);
         }
 
-        return erc20.balanceOf({
+        return this.erc20.balanceOf({
             address,
             getWallet: this.getWalletOrNew,
             tokenOrAddress,
@@ -164,13 +183,13 @@ export class WalletAppImpl implements WalletApp {
         address?: string,
     ): bigint {
         if (address && isAddress(address)) {
-            return erc20.balanceOf({
+            return this.erc20.balanceOf({
                 address,
                 getWallet: this.getWalletOrNew,
                 tokenOrAddress,
             });
         } else {
-            return ether.balanceOf({
+            return this.ether.balanceOf({
                 getWallet: this.getWalletOrNew,
                 address: tokenOrAddress,
             });
@@ -178,7 +197,7 @@ export class WalletAppImpl implements WalletApp {
     }
 
     public balanceOfERC721(address: string | Address, owner: Address): bigint {
-        return erc721.balanceOf({
+        return this.erc721.balanceOf({
             address,
             getWallet: this.getWalletOrNew,
             owner,
@@ -194,7 +213,7 @@ export class WalletAppImpl implements WalletApp {
             const address = addresses;
             const tokenId = tokenIds;
 
-            return erc1155Single.balanceOf({
+            return this.erc1155Single.balanceOf({
                 address,
                 tokenId,
                 owner,
@@ -210,7 +229,7 @@ export class WalletAppImpl implements WalletApp {
             tokenIds = [tokenIds];
         }
 
-        return erc1155Batch.balanceOf({
+        return this.erc1155Batch.balanceOf({
             addresses,
             tokenIds,
             owner,
@@ -234,7 +253,7 @@ export class WalletAppImpl implements WalletApp {
     };
 
     transferEther(from: string, to: string, amount: bigint): void {
-        ether.transfer({
+        this.ether.transfer({
             from,
             to,
             amount,
@@ -249,7 +268,7 @@ export class WalletAppImpl implements WalletApp {
         to: string,
         amount: bigint,
     ): void {
-        erc20.transfer({
+        this.erc20.transfer({
             token,
             from,
             to,
@@ -265,7 +284,7 @@ export class WalletAppImpl implements WalletApp {
         to: string,
         tokenId: bigint,
     ): void {
-        erc721.transfer({
+        this.erc721.transfer({
             token,
             from,
             to,
@@ -283,7 +302,7 @@ export class WalletAppImpl implements WalletApp {
         values: bigint[],
     ): void {
         if (!Array.isArray(tokenIds) && !Array.isArray(values)) {
-            erc1155Single.transfer({
+            this.erc1155Single.transfer({
                 token,
                 from,
                 to,
@@ -302,7 +321,7 @@ export class WalletAppImpl implements WalletApp {
             values = [values];
         }
 
-        erc1155Batch.transfer({
+        this.erc1155Batch.transfer({
             token,
             from,
             to,
@@ -314,7 +333,7 @@ export class WalletAppImpl implements WalletApp {
     }
 
     withdrawEther(address: Address, amount: bigint): Voucher {
-        return ether.withdraw({
+        return this.ether.withdraw({
             address,
             getWallet: this.getWalletOrNew,
             amount,
@@ -323,7 +342,7 @@ export class WalletAppImpl implements WalletApp {
     }
 
     withdrawERC20(token: Address, address: Address, amount: bigint): Voucher {
-        return erc20.withdraw({
+        return this.erc20.withdraw({
             token,
             address,
             amount,
@@ -332,7 +351,7 @@ export class WalletAppImpl implements WalletApp {
     }
 
     withdrawERC721(token: Address, address: Address, tokenId: bigint): Voucher {
-        return erc721.withdraw({
+        return this.erc721.withdraw({
             token,
             address,
             tokenId,
@@ -351,7 +370,7 @@ export class WalletAppImpl implements WalletApp {
         amounts: bigint | bigint[],
     ): Voucher {
         if (!Array.isArray(tokenIds) && !Array.isArray(amounts)) {
-            return erc1155Single.withdraw({
+            return this.erc1155Single.withdraw({
                 token,
                 address,
                 tokenId: tokenIds,
@@ -369,7 +388,7 @@ export class WalletAppImpl implements WalletApp {
             amounts = [amounts];
         }
 
-        return erc1155Batch.withdraw({
+        return this.erc1155Batch.withdraw({
             token,
             address,
             tokenIds,
