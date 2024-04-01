@@ -24,9 +24,12 @@ export class InsufficientBalanceError extends Error {
     }
 }
 
-export class WalletUndefinedError extends Error {
+/**
+ * Used when in withdraw method where the wallet is undefined
+ */
+export class WithdrawWalletUndefinedError extends Error {
     constructor(address: string) {
-        super(`wallet of user ${address} is undefined`);
+        super(`wallet of user ${address} is undefined in withdraw`);
     }
 }
 

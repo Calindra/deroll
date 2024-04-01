@@ -14,7 +14,7 @@ import { Wallet } from "../wallet";
 import {
     TokenFromUserNotFound,
     InsufficientBalanceError,
-    WalletUndefinedError,
+    WithdrawWalletUndefinedError,
 } from "../errors";
 
 interface BalanceOf {
@@ -106,7 +106,7 @@ export class ERC721 implements DepositOperation {
         const wallet = getWallet(address);
 
         if (!wallet) {
-            throw new WalletUndefinedError(address);
+            throw new WithdrawWalletUndefinedError(address);
         }
 
         const collection = wallet.erc721[token];

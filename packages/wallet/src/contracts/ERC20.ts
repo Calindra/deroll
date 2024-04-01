@@ -13,7 +13,7 @@ import { DepositArgs, DepositOperation } from "../token";
 import { Wallet } from "../wallet";
 import {
     InsufficientBalanceError,
-    WalletUndefinedError,
+    WithdrawWalletUndefinedError,
 } from "../errors";
 
 interface BalanceOf {
@@ -96,7 +96,7 @@ export class ERC20 implements DepositOperation {
         const wallet = getWallet(address);
 
         if (!wallet) {
-            throw new WalletUndefinedError(address);
+            throw new WithdrawWalletUndefinedError(address);
         }
 
         const balance = wallet.erc20[token];

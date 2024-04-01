@@ -10,7 +10,7 @@ import { cartesiDAppAbi, etherPortalAddress } from "../rollups";
 import { parseEtherDeposit } from "..";
 import { DepositArgs, DepositOperation } from "../token";
 import { Wallet } from "../wallet";
-import { InsufficientBalanceError, WalletUndefinedError } from "../errors";
+import { InsufficientBalanceError, WithdrawWalletUndefinedError } from "../errors";
 
 interface BalanceOf {
     address: string;
@@ -63,7 +63,7 @@ export class Ether implements DepositOperation {
         const wallet = getWallet(address);
 
         if (!wallet) {
-            throw new WalletUndefinedError(address);
+            throw new WithdrawWalletUndefinedError(address);
         }
 
         const dapp = getDapp();
