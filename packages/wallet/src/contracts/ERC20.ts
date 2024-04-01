@@ -9,7 +9,7 @@ import type { AdvanceRequestHandler, Voucher } from "@deroll/app";
 import { parseERC20Deposit } from "..";
 import { CanHandler } from "../types";
 import { Wallet } from "../wallet";
-import { InsufficientBalanceError } from "../errors";
+import { InsufficientBalanceError, NegativeAmountError } from "../errors";
 
 interface BalanceOf {
     address: string;
@@ -65,6 +65,9 @@ export class ERC20 implements CanHandler {
 
         const balance = walletFrom.erc20[token];
 
+        if (amount < 0n) {
+            throw new NegativeAmountError(amount);
+        }
         if (!balance || balance < amount) {
             throw new InsufficientBalanceError(from, token, amount);
         }
@@ -93,6 +96,9 @@ export class ERC20 implements CanHandler {
         const balance = wallet.erc20[token];
 
         // check balance
+        if (amount < 0n) {
+            throw new NegativeAmountError(amount);
+        }
         if (!balance || balance < amount) {
             throw new InsufficientBalanceError(address, token, amount);
         }

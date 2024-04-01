@@ -18,6 +18,12 @@ export class ArrayNoSameLength extends Error {
     }
 }
 
+export class NegativeAmountError extends Error {
+    constructor(amount: bigint) {
+        super(`negative amount: ${amount}`);
+    }
+}
+
 
 export class ArrayEmptyError extends Error {
     constructor(name: string) {

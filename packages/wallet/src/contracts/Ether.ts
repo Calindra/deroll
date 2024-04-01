@@ -1,15 +1,10 @@
-import {
-    getAddress,
-    type Address,
-    isAddress,
-    encodeFunctionData,
-} from "viem";
+import { getAddress, type Address, isAddress, encodeFunctionData } from "viem";
 import type { AdvanceRequestHandler, Voucher } from "@deroll/app";
 import { cartesiDAppAbi } from "../rollups";
 import { parseEtherDeposit } from "..";
 import { CanHandler } from "../types";
 import { Wallet } from "../wallet";
-import { InsufficientBalanceError } from "../errors";
+import { InsufficientBalanceError, NegativeAmountError } from "../errors";
 
 interface BalanceOf {
     address: string;
@@ -46,6 +41,9 @@ export class Ether implements CanHandler {
         const walletFrom = getWallet(from);
         const walletTo = getWallet(to);
 
+        if (amount < 0n) {
+            throw new NegativeAmountError(amount);
+        }
         if (walletFrom.ether < amount) {
             throw new InsufficientBalanceError(from, "ether", amount);
         }
@@ -64,6 +62,9 @@ export class Ether implements CanHandler {
         const dapp = getDapp();
 
         // check balance
+        if (amount < 0n) {
+            throw new NegativeAmountError(amount);
+        }
         if (wallet.ether < amount) {
             throw new InsufficientBalanceError(address, "ether", amount);
         }
@@ -83,15 +84,11 @@ export class Ether implements CanHandler {
         };
     }
 
-    handler: AdvanceRequestHandler = async ({payload}) => {
-        return "accept"
-    }
+    handler: AdvanceRequestHandler = async ({ payload }) => {
+        return "accept";
+    };
 
-    async deposit({
-        payload,
-        setWallet,
-        getWallet,
-    }: any): Promise<void> {
+    async deposit({ payload, setWallet, getWallet }: any): Promise<void> {
         const { sender, value } = parseEtherDeposit(payload);
         const wallet = getWallet(sender);
         wallet.ether += value;
