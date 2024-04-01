@@ -22,9 +22,9 @@ import {
 
 export type Wallet = {
     ether: bigint;
-    erc20: Record<string, bigint | undefined>;
-    erc721: Record<string, Set<bigint> | undefined>;
-    erc1155: Record<string, Map<bigint, bigint> | undefined>;
+    erc20: Record<string, bigint>;
+    erc721: Record<string, Set<bigint>>;
+    erc1155: Record<string, Map<bigint, bigint>>;
 };
 
 export interface WalletApp {
@@ -78,7 +78,7 @@ export interface WalletApp {
 
 export class WalletAppImpl implements WalletApp {
     private dapp?: Address;
-    private wallets: Record<string, Wallet | undefined> = {};
+    private wallets: Record<string, Wallet> = {};
 
     private readonly handlers: Record<Address, AdvanceRequestHandler>;
 
