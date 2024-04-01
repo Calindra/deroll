@@ -22,9 +22,9 @@ import {
 
 export type Wallet = {
     ether: bigint;
-    erc20: Record<string, bigint>;
-    erc721: Record<string, Set<bigint>>;
-    erc1155: Record<string, Map<bigint, bigint>>;
+    erc20: Record<string, bigint | undefined>;
+    erc721: Record<string, Set<bigint> | undefined>;
+    erc1155: Record<string, Map<bigint, bigint> | undefined>;
 };
 
 export interface WalletApp {
@@ -78,7 +78,7 @@ export interface WalletApp {
 
 export class WalletAppImpl implements WalletApp {
     private dapp?: Address;
-    private wallets = new Map<string, Wallet>();
+    private wallets: Record<string, Wallet | undefined> = {};
 
     private readonly handlers: Record<Address, AdvanceRequestHandler>;
 
@@ -92,43 +92,34 @@ export class WalletAppImpl implements WalletApp {
             [dAppAddressRelayAddress]: relay.handler,
         };
     }
-    balanceOfEther(tokenOrAddress: string): bigint {
-        return ether.balanceOf({
-            getWallet: this.getWalletOrNew,
-            address: tokenOrAddress,
-        });
-    }
-    balanceOfERC20(tokenOrAddress: Address, address: string): bigint {
-        if (isAddress(address)) {
-            address = getAddress(address);
-        }
 
-        return erc20.balanceOf({
-            address,
-            getWallet: this.getWalletOrNew,
-            tokenOrAddress,
-        });
-    }
+    getDappAddressOrThrow = (): Address => {
+        if (!this.dapp) {
+            throw new RelayError();
+        }
+        return this.dapp;
+    };
+
     setDapp = (address: Address): void => {
         this.dapp = address;
     };
 
     setWallet = (address: string, wallet: Wallet): void => {
-        this.wallets.set(address, wallet);
+        this.wallets[address] = wallet;
     };
 
     getWalletOrNew = (address: string): Wallet => {
         if (isAddress(address)) {
             address = getAddress(address);
         }
-        const wallet = this.wallets.get(address);
+        const wallet = this.wallets[address];
 
         if (wallet) {
             return wallet;
         }
 
         const newWallet = this.createDefaultWallet();
-        this.wallets.set(address, newWallet);
+        this.wallets[address] = newWallet;
 
         return newWallet;
     };
@@ -140,6 +131,25 @@ export class WalletAppImpl implements WalletApp {
             erc721: {},
             erc1155: {},
         };
+    }
+
+    balanceOfEther(tokenOrAddress: string): bigint {
+        return ether.balanceOf({
+            getWallet: this.getWalletOrNew,
+            address: tokenOrAddress,
+        });
+    }
+
+    balanceOfERC20(tokenOrAddress: Address, address: string): bigint {
+        if (isAddress(address)) {
+            address = getAddress(address);
+        }
+
+        return erc20.balanceOf({
+            address,
+            getWallet: this.getWalletOrNew,
+            tokenOrAddress,
+        });
     }
 
     /**
@@ -235,8 +245,8 @@ export class WalletAppImpl implements WalletApp {
 
     transferERC20(
         token: Address,
-        from: Address,
-        to: Address,
+        from: string,
+        to: string,
         amount: bigint,
     ): void {
         erc20.transfer({
@@ -251,8 +261,8 @@ export class WalletAppImpl implements WalletApp {
 
     transferERC721(
         token: Address,
-        from: Address,
-        to: Address,
+        from: string,
+        to: string,
         tokenId: bigint,
     ): void {
         erc721.transfer({
@@ -267,8 +277,8 @@ export class WalletAppImpl implements WalletApp {
 
     transferERC1155(
         token: Address,
-        from: Address,
-        to: Address,
+        from: string,
+        to: string,
         tokenIds: bigint[],
         values: bigint[],
     ): void {
@@ -332,12 +342,7 @@ export class WalletAppImpl implements WalletApp {
         });
     }
 
-    getDappAddressOrThrow = (): Address => {
-        if (!this.dapp) {
-            throw new RelayError();
-        }
-        return this.dapp;
-    };
+
 
     withdrawERC1155(
         token: Address,

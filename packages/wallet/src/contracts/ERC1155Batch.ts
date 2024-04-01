@@ -11,7 +11,6 @@ import { CanHandler } from "../types";
 import { Wallet } from "../wallet";
 import {
     ArrayEmptyError,
-    NegativeTokenIdError,
     ArrayNoSameLength,
     InsufficientBalanceError,
 } from "../errors";
@@ -26,8 +25,8 @@ interface BalanceOf {
 interface Transfer {
     tokenIds: bigint[];
     amounts: bigint[];
-    from: Address;
-    to: Address;
+    from: string;
+    to: string;
     getWallet(address: string): Wallet;
     setWallet(address: string, wallet: Wallet): void;
     token: Address;
@@ -98,9 +97,6 @@ export class ERC1155Batch implements CanHandler {
 
             const item = nfts.get(tokenId) ?? 0n;
 
-            if (amount < 0n) {
-                throw new NegativeTokenIdError(tokenId, amount);
-            }
             if (item < amount) {
                 throw new InsufficientBalanceError(from, token, amount);
             }
@@ -153,9 +149,6 @@ export class ERC1155Batch implements CanHandler {
         for (let i = 0; i < tokenIds.length; i++) {
             const tokenId = tokenIds[i];
             const value = amounts[i];
-            if (value < 0n) {
-                throw new NegativeTokenIdError(tokenId, value);
-            }
             const balance = nfts.get(tokenId) ?? 0n;
             if (balance < value) {
                 throw new InsufficientBalanceError(address, token, value);

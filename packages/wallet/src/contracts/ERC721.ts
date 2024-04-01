@@ -10,9 +10,7 @@ import { parseERC721Deposit } from "..";
 import { CanHandler } from "../types";
 import { Wallet } from "../wallet";
 import {
-    TokenFromUserNotFound,
     InsufficientBalanceError,
-    WithdrawWalletUndefinedError,
 } from "../errors";
 
 interface BalanceOf {
@@ -22,8 +20,8 @@ interface BalanceOf {
 }
 
 interface Transfer {
-    from: Address;
-    to: Address;
+    from: string;
+    to: string;
     getWallet(address: string): Wallet;
     setWallet(address: string, wallet: Wallet): void;
     token: Address;
@@ -70,14 +68,15 @@ export class ERC721 implements CanHandler {
         const walletFrom = getWallet(from);
         const walletTo = getWallet(to);
 
-        const balance = walletFrom.erc721[token];
+        let wallet = walletFrom.erc721[token];
 
-        if (!balance) {
-            throw new InsufficientBalanceError(from, token, tokenId);
+        if (!wallet) {
+            wallet = new Set();
+            walletFrom.erc721[token] = wallet;
         }
 
-        if (!balance.has(tokenId)) {
-            throw new TokenFromUserNotFound(from, token, tokenId);
+        if (!wallet.has(tokenId)) {
+            throw new InsufficientBalanceError(from, token, tokenId);
         }
 
         let balanceTo = walletTo.erc721[token];
@@ -86,7 +85,7 @@ export class ERC721 implements CanHandler {
             walletTo.erc721[token] = balanceTo;
         }
         balanceTo.add(tokenId);
-        balance.delete(tokenId);
+        wallet.delete(tokenId);
 
         setWallet(from, walletFrom);
         setWallet(to, walletTo);
@@ -103,14 +102,17 @@ export class ERC721 implements CanHandler {
 
         const wallet = getWallet(address);
 
-        if (!wallet) {
-            throw new WithdrawWalletUndefinedError(address);
+        let collection = wallet.erc721[token];
+
+        if (!collection) {
+            collection = new Set();
+            wallet.erc721[token] = collection;
         }
 
-        const collection = wallet.erc721[token];
         if (!collection.has(tokenId)) {
-            throw new InsufficientBalanceError(address, token, 1n, tokenId);
+            throw new InsufficientBalanceError(address, token, tokenId);
         }
+
         const dappAddress = getDapp();
 
         collection.delete(tokenId);

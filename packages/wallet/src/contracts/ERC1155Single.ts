@@ -9,7 +9,7 @@ import { erc1155Abi } from "../rollups";
 import { parseERC1155SingleDeposit } from "..";
 import {  CanHandler } from "../types";
 import type { Wallet } from "../wallet";
-import { InsufficientBalanceError, NegativeTokenIdError } from "../errors";
+import { InsufficientBalanceError } from "../errors";
 
 interface BalanceOf {
     address: Address;
@@ -19,8 +19,8 @@ interface BalanceOf {
 }
 
 interface Transfer {
-    from: Address;
-    to: Address;
+    from: string;
+    to: string;
     getWallet(address: string): Wallet;
     setWallet(address: string, wallet: Wallet): void;
     token: Address;
@@ -78,11 +78,8 @@ export class ERC1155Single implements CanHandler {
         // check balance
         const balance = nfts.get(tokenId) ?? 0n;
 
-        if (amount < 0n) {
-            throw new NegativeTokenIdError(tokenId, amount);
-        }
         if (balance < amount) {
-            throw new InsufficientBalanceError(from, token, amount, tokenId);
+            throw new InsufficientBalanceError(from, token, tokenId);
         }
 
         nfts.set(tokenId, balance - amount);
@@ -120,12 +117,9 @@ export class ERC1155Single implements CanHandler {
         }
 
         // check balance
-        if (amount < 0n) {
-            throw new NegativeTokenIdError(tokenId, amount);
-        }
         const balance = nfts.get(tokenId) ?? 0n;
         if (balance < amount) {
-            throw new InsufficientBalanceError(address, token, amount, tokenId);
+            throw new InsufficientBalanceError(address, token, tokenId);
         }
 
         nfts.set(tokenId, balance - amount);

@@ -9,10 +9,7 @@ import type { AdvanceRequestHandler, Voucher } from "@deroll/app";
 import { parseERC20Deposit } from "..";
 import { CanHandler } from "../types";
 import { Wallet } from "../wallet";
-import {
-    InsufficientBalanceError,
-    WithdrawWalletUndefinedError,
-} from "../errors";
+import { InsufficientBalanceError } from "../errors";
 
 interface BalanceOf {
     address: string;
@@ -92,10 +89,6 @@ export class ERC20 implements CanHandler {
         address = getAddress(address);
 
         const wallet = getWallet(address);
-
-        if (!wallet) {
-            throw new WithdrawWalletUndefinedError(address);
-        }
 
         const balance = wallet.erc20[token];
 

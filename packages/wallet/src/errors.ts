@@ -1,11 +1,3 @@
-import { inspect } from "node:util";
-
-export class InvalidPayloadError extends Error {
-    constructor(public payload: unknown) {
-        super(`Invalid payload: ${inspect(payload)}`);
-    }
-}
-
 export class RelayError extends Error {
     constructor() {
         super(
@@ -15,25 +7,6 @@ export class RelayError extends Error {
 }
 
 export class InsufficientBalanceError extends Error {
-    constructor(user: string, token: string, amount: bigint, tokenId?: bigint) {
-        super(
-            `insufficient balance of user ${user} of token ${token}: ${amount.toString()}${
-                tokenId ? ` of tokenId ${tokenId}` : ""
-            }`,
-        );
-    }
-}
-
-/**
- * Used when in withdraw method where the wallet is undefined
- */
-export class WithdrawWalletUndefinedError extends Error {
-    constructor(address: string) {
-        super(`wallet of user ${address} is undefined in withdraw`);
-    }
-}
-
-export class TokenFromUserNotFound extends Error {
     constructor(user: string, token: string, tokenId: bigint) {
         super(`user ${user} does not have token ${tokenId} of token ${token}`);
     }
@@ -45,11 +18,6 @@ export class ArrayNoSameLength extends Error {
     }
 }
 
-export class NegativeTokenIdError extends Error {
-    constructor(tokenId: bigint, amount: bigint) {
-        super(`negative value for tokenId ${tokenId}: ${amount}`);
-    }
-}
 
 export class ArrayEmptyError extends Error {
     constructor(name: string) {
