@@ -154,7 +154,6 @@ export class WalletAppImpl implements WalletApp {
 
     balanceOfEther(tokenOrAddress: string): bigint {
         return this.ether.balanceOf({
-            getWallet: this.getWalletOrNew,
             address: tokenOrAddress,
         });
     }
@@ -166,7 +165,6 @@ export class WalletAppImpl implements WalletApp {
 
         return this.erc20.balanceOf({
             address,
-            getWallet: this.getWalletOrNew,
             tokenOrAddress,
         });
     }
@@ -185,12 +183,10 @@ export class WalletAppImpl implements WalletApp {
         if (address && isAddress(address)) {
             return this.erc20.balanceOf({
                 address,
-                getWallet: this.getWalletOrNew,
                 tokenOrAddress,
             });
         } else {
             return this.ether.balanceOf({
-                getWallet: this.getWalletOrNew,
                 address: tokenOrAddress,
             });
         }
@@ -199,7 +195,6 @@ export class WalletAppImpl implements WalletApp {
     public balanceOfERC721(address: string | Address, owner: Address): bigint {
         return this.erc721.balanceOf({
             address,
-            getWallet: this.getWalletOrNew,
             owner,
         });
     }
@@ -217,7 +212,6 @@ export class WalletAppImpl implements WalletApp {
                 address,
                 tokenId,
                 owner,
-                getWallet: this.getWalletOrNew,
             });
         }
 
@@ -233,7 +227,6 @@ export class WalletAppImpl implements WalletApp {
             addresses,
             tokenIds,
             owner,
-            getWallet: this.getWalletOrNew,
         });
     }
 
@@ -257,8 +250,6 @@ export class WalletAppImpl implements WalletApp {
             from,
             to,
             amount,
-            getWallet: this.getWalletOrNew,
-            setWallet: this.setWallet,
         });
     }
 
@@ -273,8 +264,6 @@ export class WalletAppImpl implements WalletApp {
             from,
             to,
             amount,
-            getWallet: this.getWalletOrNew,
-            setWallet: this.setWallet,
         });
     }
 
@@ -289,8 +278,6 @@ export class WalletAppImpl implements WalletApp {
             from,
             to,
             tokenId,
-            getWallet: this.getWalletOrNew,
-            setWallet: this.setWallet,
         });
     }
 
@@ -308,8 +295,6 @@ export class WalletAppImpl implements WalletApp {
                 to,
                 tokenId: tokenIds,
                 amount: values,
-                getWallet: this.getWalletOrNew,
-                setWallet: this.setWallet,
             });
         }
 
@@ -327,17 +312,13 @@ export class WalletAppImpl implements WalletApp {
             to,
             tokenIds,
             amounts: values,
-            getWallet: this.getWalletOrNew,
-            setWallet: this.setWallet,
         });
     }
 
     withdrawEther(address: Address, amount: bigint): Voucher {
         return this.ether.withdraw({
             address,
-            getWallet: this.getWalletOrNew,
             amount,
-            getDapp: this.getDappAddressOrThrow,
         });
     }
 
@@ -346,7 +327,6 @@ export class WalletAppImpl implements WalletApp {
             token,
             address,
             amount,
-            getWallet: this.getWalletOrNew,
         });
     }
 
@@ -355,9 +335,6 @@ export class WalletAppImpl implements WalletApp {
             token,
             address,
             tokenId,
-            getWallet: this.getWalletOrNew,
-            setWallet: this.setWallet,
-            getDapp: this.getDappAddressOrThrow,
         });
     }
 
@@ -375,8 +352,6 @@ export class WalletAppImpl implements WalletApp {
                 address,
                 tokenId: tokenIds,
                 amount: amounts,
-                getWallet: this.getWalletOrNew,
-                getDapp: this.getDappAddressOrThrow,
             });
         }
 
@@ -393,8 +368,6 @@ export class WalletAppImpl implements WalletApp {
             address,
             tokenIds,
             amounts,
-            getWallet: this.getWalletOrNew,
-            getDapp: this.getDappAddressOrThrow,
         });
     }
 }

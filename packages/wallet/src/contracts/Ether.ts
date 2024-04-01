@@ -8,40 +8,35 @@ import { InsufficientBalanceError, NegativeAmountError } from "../errors";
 
 interface BalanceOf {
     address: string;
-    getWallet(address: string): Wallet;
 }
 
 interface Transfer {
     from: string;
     to: string;
     amount: bigint;
-    getWallet(address: string): Wallet;
-    setWallet(address: string, wallet: Wallet): void;
 }
 
 interface Withdraw {
     address: Address;
     amount: bigint;
-    getWallet(address: string): Wallet;
-    getDapp(): Address;
 }
 
 export class Ether implements CanHandler {
     constructor(private wallet: WalletApp) { };
 
-    balanceOf({ address, getWallet }: BalanceOf): bigint {
+    balanceOf({ address }: BalanceOf): bigint {
         if (isAddress(address)) {
             address = getAddress(address);
         }
 
-        const wallet = getWallet(address);
+        const wallet = this.wallet.getWalletOrNew(address);
 
         // ether balance
         return wallet?.ether ?? 0n;
     }
-    transfer({ getWallet, from, to, amount, setWallet }: Transfer): void {
-        const walletFrom = getWallet(from);
-        const walletTo = getWallet(to);
+    transfer({ from, to, amount }: Transfer): void {
+        const walletFrom = this.wallet.getWalletOrNew(from);
+        const walletTo = this.wallet.getWalletOrNew(to);
 
         if (amount < 0n) {
             throw new NegativeAmountError(amount);
@@ -52,16 +47,16 @@ export class Ether implements CanHandler {
 
         walletFrom.ether = walletFrom.ether - amount;
         walletTo.ether = walletTo.ether + amount;
-        setWallet(from, walletFrom);
-        setWallet(to, walletTo);
+        this.wallet.setWallet(from, walletFrom);
+        this.wallet.setWallet(to, walletTo);
     }
-    withdraw({ address, getWallet, amount, getDapp }: Withdraw): Voucher {
+    withdraw({ address, amount }: Withdraw): Voucher {
         // normalize address
         address = getAddress(address);
 
-        const wallet = getWallet(address);
+        const wallet = this.wallet.getWalletOrNew(address);
 
-        const dapp = getDapp();
+        const dapp = this.wallet.getDappAddressOrThrow();
 
         // check balance
         if (amount < 0n) {

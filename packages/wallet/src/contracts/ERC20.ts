@@ -13,7 +13,6 @@ import { InsufficientBalanceError, NegativeAmountError } from "../errors";
 
 interface BalanceOf {
     address: string;
-    getWallet(address: string): Wallet;
     tokenOrAddress: string;
 }
 
@@ -22,25 +21,22 @@ interface Transfer {
     from: string;
     to: string;
     amount: bigint;
-    getWallet(address: string): Wallet;
-    setWallet(address: string, wallet: Wallet): void;
 }
 
 interface Withdraw {
     token: Address;
     address: Address;
-    getWallet(address: string): Wallet;
     amount: bigint;
 }
 
 export class ERC20 implements CanHandler {
     constructor(private wallet: WalletApp) { };
 
-    balanceOf({ address, getWallet, tokenOrAddress }: BalanceOf): bigint {
+    balanceOf({ address, tokenOrAddress }: BalanceOf): bigint {
         const addr = getAddress(address);
 
         const erc20address = getAddress(tokenOrAddress);
-        const wallet = getWallet(addr);
+        const wallet = this.wallet.getWalletOrNew(addr);
         const result = wallet.erc20[erc20address] ?? 0n;
         return result;
     }
@@ -49,8 +45,6 @@ export class ERC20 implements CanHandler {
         from,
         to,
         amount,
-        getWallet,
-        setWallet,
     }: Transfer): void {
         // normalize addresses
         token = getAddress(token);
@@ -62,8 +56,8 @@ export class ERC20 implements CanHandler {
             to = getAddress(to);
         }
 
-        const walletFrom = getWallet(from);
-        const walletTo = getWallet(to);
+        const walletFrom = this.wallet.getWalletOrNew(from);
+        const walletTo = this.wallet.getWalletOrNew(to);
 
         const balance = walletFrom.erc20[token];
 
@@ -85,15 +79,15 @@ export class ERC20 implements CanHandler {
             walletTo.erc20[token] = amount;
         }
 
-        setWallet(from, walletFrom);
-        setWallet(to, walletTo);
+        this.wallet.setWallet(from, walletFrom);
+        this.wallet.setWallet(to, walletTo);
     }
-    withdraw({ token, address, getWallet, amount }: Withdraw): Voucher {
+    withdraw({ token, address, amount }: Withdraw): Voucher {
         // normalize addresses
         token = getAddress(token);
         address = getAddress(address);
 
-        const wallet = getWallet(address);
+        const wallet = this.wallet.getWalletOrNew(address);
 
         const balance = wallet.erc20[token];
 

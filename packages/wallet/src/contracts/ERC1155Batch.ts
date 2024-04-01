@@ -20,7 +20,6 @@ interface BalanceOf {
     addresses: Address[];
     tokenIds: bigint[];
     owner: string;
-    getWallet(address: string): Wallet;
 }
 
 interface Transfer {
@@ -28,8 +27,6 @@ interface Transfer {
     amounts: bigint[];
     from: string;
     to: string;
-    getWallet(address: string): Wallet;
-    setWallet(address: string, wallet: Wallet): void;
     token: Address;
 }
 
@@ -38,19 +35,17 @@ interface Withdraw {
     amounts: bigint[];
     token: Address;
     address: Address;
-    getWallet(address: string): Wallet;
-    getDapp(): Address;
 }
 
 export class ERC1155Batch implements CanHandler {
     constructor(private wallet: WalletApp) { };
 
-    balanceOf({ addresses, tokenIds, owner, getWallet }: BalanceOf): bigint[] {
+    balanceOf({ addresses, tokenIds, owner }: BalanceOf): bigint[] {
         if (addresses.length !== tokenIds.length) {
             throw new ArrayNoSameLength("addresses", "tokenIds");
         }
 
-        const wallet = getWallet(owner);
+        const wallet = this.wallet.getWalletOrNew(owner);
         const balances: bigint[] = [];
 
         for (let i = 0; i < addresses.length; i++) {
@@ -70,8 +65,6 @@ export class ERC1155Batch implements CanHandler {
         amounts,
         from,
         to,
-        getWallet,
-        setWallet,
         token,
     }: Transfer): void {
         if (tokenIds.length !== amounts.length) {
@@ -88,8 +81,8 @@ export class ERC1155Batch implements CanHandler {
             to = getAddress(to);
         }
 
-        const walletFrom = getWallet(from);
-        const walletTo = getWallet(to);
+        const walletFrom = this.wallet.getWalletOrNew(from);
+        const walletTo = this.wallet.getWalletOrNew(to);
 
         const nfts = new Map(walletFrom.erc1155[token]);
 
@@ -125,16 +118,14 @@ export class ERC1155Batch implements CanHandler {
             nftsTo.set(tokenId, item + value);
         }
 
-        setWallet(from, walletFrom);
-        setWallet(to, walletTo);
+        this.wallet.setWallet(from, walletFrom);
+        this.wallet.setWallet(to, walletTo);
     }
     withdraw({
-        getWallet,
         tokenIds,
         amounts,
         token,
         address,
-        getDapp,
     }: Withdraw): Voucher {
         if (!tokenIds.length) throw new ArrayEmptyError("tokenIds");
         if (!amounts.length) throw new ArrayEmptyError("amounts");
@@ -147,7 +138,7 @@ export class ERC1155Batch implements CanHandler {
         token = getAddress(token);
         address = getAddress(address);
 
-        const wallet = getWallet(address);
+        const wallet = this.wallet.getWalletOrNew(address);
 
         const nfts = new Map(wallet.erc1155[token]);
 
@@ -169,7 +160,7 @@ export class ERC1155Batch implements CanHandler {
 
         wallet.erc1155[token] = nfts;
 
-        const dappAddress = getDapp();
+        const dappAddress = this.wallet.getDappAddressOrThrow();
         let call = encodeFunctionData({
             abi: erc1155Abi,
             functionName: "safeBatchTransferFrom",

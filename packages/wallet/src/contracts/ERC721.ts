@@ -15,15 +15,12 @@ import {
 
 interface BalanceOf {
     owner: Address;
-    getWallet(address: string): Wallet;
     address: string;
 }
 
 interface Transfer {
     from: string;
     to: string;
-    getWallet(address: string): Wallet;
-    setWallet(address: string, wallet: Wallet): void;
     token: Address;
     tokenId: bigint;
 }
@@ -31,18 +28,15 @@ interface Transfer {
 interface Withdraw {
     token: Address;
     address: Address;
-    getWallet(address: string): Wallet;
-    setWallet(address: string, wallet: Wallet): void;
     tokenId: bigint;
-    getDapp(): Address;
 }
 
 export class ERC721 implements CanHandler {
     constructor(private wallet: WalletApp) { };
 
-    balanceOf({ owner, getWallet, address }: BalanceOf): bigint {
+    balanceOf({ owner, address }: BalanceOf): bigint {
         const ownerAddress = getAddress(owner);
-        const wallet = getWallet(ownerAddress);
+        const wallet = this.wallet.getWalletOrNew(ownerAddress);
         if (isAddress(address)) {
             address = getAddress(address);
         }
@@ -52,8 +46,6 @@ export class ERC721 implements CanHandler {
     transfer({
         from,
         to,
-        getWallet,
-        setWallet,
         token,
         tokenId,
     }: Transfer): void {
@@ -67,8 +59,8 @@ export class ERC721 implements CanHandler {
             to = getAddress(to);
         }
 
-        const walletFrom = getWallet(from);
-        const walletTo = getWallet(to);
+        const walletFrom = this.wallet.getWalletOrNew(from);
+        const walletTo = this.wallet.getWalletOrNew(to);
 
         let wallet = walletFrom.erc721[token];
 
@@ -84,20 +76,18 @@ export class ERC721 implements CanHandler {
         balanceTo.add(tokenId);
         wallet.delete(tokenId);
 
-        setWallet(from, walletFrom);
-        setWallet(to, walletTo);
+        this.wallet.setWallet(from, walletFrom);
+        this.wallet.setWallet(to, walletTo);
     }
     withdraw({
         token,
         address,
-        getWallet,
         tokenId,
-        getDapp,
     }: Withdraw): Voucher {
         token = getAddress(token);
         address = getAddress(address);
 
-        const wallet = getWallet(address);
+        const wallet = this.wallet.getWalletOrNew(address);
 
         let collection = wallet.erc721[token];
 
@@ -110,7 +100,7 @@ export class ERC721 implements CanHandler {
             throw new InsufficientBalanceError(address, token, tokenId);
         }
 
-        const dappAddress = getDapp();
+        const dappAddress = this.wallet.getDappAddressOrThrow();
 
         collection.delete(tokenId);
         const call = encodeFunctionData({
