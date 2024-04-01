@@ -1,15 +1,13 @@
 import {
     type Address,
-    isHex,
     getAddress,
     isAddress,
     encodeFunctionData,
     erc721Abi,
 } from "viem";
-import type { Voucher } from "@deroll/app";
-import { erc721PortalAddress } from "../rollups";
+import type { AdvanceRequestHandler, Voucher } from "@deroll/app";
 import { parseERC721Deposit } from "..";
-import { DepositArgs, DepositOperation } from "../token";
+import { CanHandler } from "../types";
 import { Wallet } from "../wallet";
 import {
     TokenFromUserNotFound,
@@ -41,7 +39,7 @@ interface Withdraw {
     getDapp(): Address;
 }
 
-export class ERC721 implements DepositOperation {
+export class ERC721 implements CanHandler {
     balanceOf({ owner, getWallet, address }: BalanceOf): bigint {
         const ownerAddress = getAddress(owner);
         const wallet = getWallet(ownerAddress);
@@ -126,11 +124,15 @@ export class ERC721 implements DepositOperation {
             payload: call,
         };
     }
+
+    handler: AdvanceRequestHandler = async (data) => {
+        return "accept"
+    }
     async deposit({
         payload,
         setWallet,
         getWallet,
-    }: DepositArgs): Promise<void> {
+    }: any): Promise<void> {
         const { token, sender, tokenId } = parseERC721Deposit(payload);
 
         const wallet = getWallet(sender);
@@ -143,9 +145,6 @@ export class ERC721 implements DepositOperation {
             wallet.erc721[token] = collection;
         }
         setWallet(sender, wallet);
-    }
-    isDeposit(msgSender: Address): boolean {
-        return msgSender === erc721PortalAddress;
     }
 }
 

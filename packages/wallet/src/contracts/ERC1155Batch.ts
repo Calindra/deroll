@@ -1,14 +1,13 @@
 import {
     type Address,
-    isHex,
     getAddress,
     isAddress,
     encodeFunctionData,
 } from "viem";
-import { Voucher } from "@deroll/app";
-import { erc1155Abi, erc1155BatchPortalAddress } from "../rollups";
+import { Voucher, type AdvanceRequestHandler } from "@deroll/app";
+import { erc1155Abi } from "../rollups";
 import { parseERC1155BatchDeposit } from "..";
-import { DepositArgs, DepositOperation } from "../token";
+import { CanHandler } from "../types";
 import { Wallet } from "../wallet";
 import {
     ArrayEmptyError,
@@ -43,7 +42,7 @@ interface Withdraw {
     getDapp(): Address;
 }
 
-export class ERC1155Batch implements DepositOperation {
+export class ERC1155Batch implements CanHandler {
     balanceOf({ addresses, tokenIds, owner, getWallet }: BalanceOf): bigint[] {
         if (addresses.length !== tokenIds.length) {
             throw new ArrayNoSameLength("addresses", "tokenIds");
@@ -179,11 +178,15 @@ export class ERC1155Batch implements DepositOperation {
             payload: call,
         };
     }
+
+    handler: AdvanceRequestHandler = async (data) => {
+        return "accept"
+    }
     async deposit({
         payload,
         setWallet,
         getWallet,
-    }: DepositArgs): Promise<void> {
+    }: any): Promise<void> {
         const { token, sender, tokenIds, values } =
             parseERC1155BatchDeposit(payload);
 
@@ -203,8 +206,6 @@ export class ERC1155Batch implements DepositOperation {
         }
         setWallet(sender, wallet);
     }
-    isDeposit(msgSender: Address): boolean {
-        return msgSender === erc1155BatchPortalAddress;
-    }
+
 }
 export const erc1155Batch = new ERC1155Batch();

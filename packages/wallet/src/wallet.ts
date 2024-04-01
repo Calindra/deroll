@@ -1,10 +1,24 @@
 import { Address, getAddress, isAddress } from "viem";
 import { AdvanceRequestHandler, Voucher } from "@deroll/app";
 
-import { ether, erc20, erc721, erc1155Single, erc1155Batch } from "./contracts";
+import {
+    ether,
+    erc20,
+    erc721,
+    erc1155Single,
+    erc1155Batch,
+    relay,
+} from "./contracts";
 
-import { depositHandler } from "./token";
 import { RelayError } from "./errors";
+import {
+    etherPortalAddress,
+    erc20PortalAddress,
+    erc721PortalAddress,
+    erc1155SinglePortalAddress,
+    erc1155BatchPortalAddress,
+    dAppAddressRelayAddress,
+} from "./rollups";
 
 export type Wallet = {
     ether: bigint;
@@ -66,7 +80,18 @@ export class WalletAppImpl implements WalletApp {
     private dapp?: Address;
     private wallets = new Map<string, Wallet>();
 
-    constructor() {}
+    private readonly handlers: Record<Address, AdvanceRequestHandler>;
+
+    constructor() {
+        this.handlers = {
+            [etherPortalAddress]: ether.handler,
+            [erc20PortalAddress]: erc20.handler,
+            [erc721PortalAddress]: erc721.handler,
+            [erc1155SinglePortalAddress]: erc1155Single.handler,
+            [erc1155BatchPortalAddress]: erc1155Batch.handler,
+            [dAppAddressRelayAddress]: relay.handler,
+        };
+    }
     balanceOfEther(tokenOrAddress: string): bigint {
         return ether.balanceOf({
             getWallet: this.getWalletOrNew,
@@ -185,16 +210,10 @@ export class WalletAppImpl implements WalletApp {
 
     public handler: AdvanceRequestHandler = async (data) => {
         try {
-            const handler = depositHandler.findDeposit(data);
+            const msgSender = getAddress(data.metadata.msg_sender);
+            const handler = this.handlers[msgSender];
             if (handler) {
-                await handler.deposit({
-                    setDapp: this.setDapp,
-                    payload: data.payload,
-                    getWallet: this.getWalletOrNew,
-                    setWallet: this.setWallet,
-                });
-
-                return "accept";
+                return handler(data);
             }
         } catch (e) {
             console.error("Error", e);

@@ -1,15 +1,13 @@
 import {
     getAddress,
     type Address,
-    isHex,
     isAddress,
     encodeFunctionData,
     erc20Abi,
 } from "viem";
-import type { Voucher } from "@deroll/app";
-import { erc20PortalAddress } from "../rollups";
+import type { AdvanceRequestHandler, Voucher } from "@deroll/app";
 import { parseERC20Deposit } from "..";
-import { DepositArgs, DepositOperation } from "../token";
+import { CanHandler } from "../types";
 import { Wallet } from "../wallet";
 import {
     InsufficientBalanceError,
@@ -38,7 +36,7 @@ interface Withdraw {
     amount: bigint;
 }
 
-export class ERC20 implements DepositOperation {
+export class ERC20 implements CanHandler {
     balanceOf({ address, getWallet, tokenOrAddress }: BalanceOf): bigint {
         const addr = getAddress(address);
 
@@ -121,11 +119,16 @@ export class ERC20 implements DepositOperation {
             payload: call,
         };
     }
+
+    handler: AdvanceRequestHandler = async (data) => {
+        return "accept"
+    }
+
     async deposit({
         payload,
         getWallet,
         setWallet,
-    }: DepositArgs): Promise<void> {
+    }: any): Promise<void> {
         const { success, token, sender, amount } = parseERC20Deposit(payload);
         if (success) {
             const wallet = getWallet(sender);
@@ -140,9 +143,6 @@ export class ERC20 implements DepositOperation {
 
             setWallet(sender, wallet);
         }
-    }
-    isDeposit(msgSender: Address): boolean {
-        return msgSender === erc20PortalAddress;
     }
 }
 

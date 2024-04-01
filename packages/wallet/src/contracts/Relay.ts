@@ -1,15 +1,14 @@
 import {
-    getAddress,
-    type Address
-} from "viem";
-import { dAppAddressRelayAddress } from "../rollups";
-import { DepositArgs, DepositOperation } from "../token";
+    getAddress} from "viem";
+import type { AdvanceRequestHandler } from "@deroll/app";
+import { CanHandler } from "../types";
 
-export class Relay implements DepositOperation {
-    isDeposit(msgSender: Address): boolean {
-        return msgSender === dAppAddressRelayAddress;
+export class Relay implements CanHandler {
+    handler: AdvanceRequestHandler = async (data) => {
+        return "accept"
     }
-    async deposit({ payload, setDapp }: DepositArgs): Promise<void> {
+
+    async deposit({ payload, setDapp }: any): Promise<void> {
         const dapp = getAddress(payload);
         setDapp(dapp);
     }

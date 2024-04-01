@@ -1,14 +1,13 @@
 import {
     type Address,
-    isHex,
     getAddress,
     isAddress,
     encodeFunctionData,
 } from "viem";
-import type { Voucher } from "@deroll/app";
-import { erc1155Abi, erc1155SinglePortalAddress } from "../rollups";
+import type { AdvanceRequestHandler, Voucher } from "@deroll/app";
+import { erc1155Abi } from "../rollups";
 import { parseERC1155SingleDeposit } from "..";
-import { DepositArgs, DepositOperation } from "../token";
+import {  CanHandler } from "../types";
 import type { Wallet } from "../wallet";
 import { InsufficientBalanceError, NegativeTokenIdError } from "../errors";
 
@@ -38,7 +37,7 @@ interface Withdraw {
     amount: bigint;
 }
 
-export class ERC1155Single implements DepositOperation {
+export class ERC1155Single implements CanHandler {
     balanceOf({ address, tokenId, getWallet, owner }: BalanceOf): bigint {
         const wallet = getWallet(owner);
         address = getAddress(address);
@@ -144,11 +143,17 @@ export class ERC1155Single implements DepositOperation {
             payload: call,
         };
     }
+
+    handler: AdvanceRequestHandler = async (data) => {
+        return "accept"
+    }
+
+
     async deposit({
         payload,
         setWallet,
         getWallet,
-    }: DepositArgs): Promise<void> {
+    }: any): Promise<void> {
         const { tokenId, sender, token, value } =
             parseERC1155SingleDeposit(payload);
 
@@ -161,9 +166,6 @@ export class ERC1155Single implements DepositOperation {
         const tokenBalance = collection.get(tokenId) ?? 0n;
         collection.set(tokenId, tokenBalance + value);
         setWallet(sender, wallet);
-    }
-    isDeposit(msgSender: Address): boolean {
-        return msgSender === erc1155SinglePortalAddress;
     }
 }
 

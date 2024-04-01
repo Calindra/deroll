@@ -1,14 +1,13 @@
 import {
     getAddress,
     type Address,
-    isHex,
     isAddress,
     encodeFunctionData,
 } from "viem";
-import type { Voucher } from "@deroll/app";
-import { cartesiDAppAbi, etherPortalAddress } from "../rollups";
+import type { AdvanceRequestHandler, Voucher } from "@deroll/app";
+import { cartesiDAppAbi } from "../rollups";
 import { parseEtherDeposit } from "..";
-import { DepositArgs, DepositOperation } from "../token";
+import { CanHandler } from "../types";
 import { Wallet } from "../wallet";
 import { InsufficientBalanceError, WithdrawWalletUndefinedError } from "../errors";
 
@@ -32,7 +31,7 @@ interface Withdraw {
     getDapp(): Address;
 }
 
-export class Ether implements DepositOperation {
+export class Ether implements CanHandler {
     balanceOf({ address, getWallet }: BalanceOf): bigint {
         if (isAddress(address)) {
             address = getAddress(address);
@@ -87,14 +86,16 @@ export class Ether implements DepositOperation {
             payload: call,
         };
     }
-    isDeposit(msgSender: Address): boolean {
-        return msgSender === etherPortalAddress;
+
+    handler: AdvanceRequestHandler = async ({payload}) => {
+        return "accept"
     }
+
     async deposit({
         payload,
         setWallet,
         getWallet,
-    }: DepositArgs): Promise<void> {
+    }: any): Promise<void> {
         const { sender, value } = parseEtherDeposit(payload);
         const wallet = getWallet(sender);
         wallet.ether += value;
